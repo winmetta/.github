@@ -1,6 +1,8 @@
 # AGENTS.md: Win Metta Organization Workspace
 
-This directory (`~/winmetta/`) is **not a git repository**. It is a local workspace that holds clones of repositories from the [`winmetta` GitHub organization](https://github.com/winmetta). Each subdirectory is its own independent git repo with its own history, tooling, and conventions.
+The **workspace root** (the directory containing this file, usually `~/winmetta/` but it may be anywhere, e.g. `~/Projects/winmetta/`) is **not a git repository**. It is a local workspace that holds clones of repositories from the [`winmetta` GitHub organization](https://github.com/winmetta). Each subdirectory is its own independent git repo with its own history, tooling, and conventions.
+
+The workspace-root `AGENTS.md` is a symlink to `.github/AGENTS.md` in the [winmetta/.github](https://github.com/winmetta/.github) repo, and `CLAUDE.md` is a symlink to `AGENTS.md`. Developer setup instructions are in `.github/README.md`.
 
 **Before working inside a repo, read that repo's own `AGENTS.md` / `CLAUDE.md` / `README.md`.** Repo-level instructions override this file. This file only covers the organization and conventions shared by every repo.
 
@@ -22,18 +24,18 @@ Win Metta is a California 501(c)(3) nonprofit that preserves and shares **Therav
 
 This file intentionally does **not** list repositories. Repos get created, archived, cloned, and deleted over time, so any list here would go stale. Discover the current state instead:
 
-- **Local clones:** each subdirectory of `~/winmetta/` that contains a `.git/` is a clone of an org repo. Which repos are cloned locally varies by machine and over time. Don't treat it as the full set.
+- **Local clones:** each subdirectory of the workspace root that contains a `.git/` is a clone of an org repo. Which repos are cloned locally varies by machine and over time. Don't treat it as the full set.
 - **All org repos (source of truth):** use the `gh` CLI, e.g.
   ```bash
   gh repo list winmetta --limit 100 --json name,description,visibility,isArchived,primaryLanguage,homepageUrl
   gh repo view winmetta/<repo-name>
   ```
-- **Getting a repo that isn't cloned yet:** `gh repo clone winmetta/<repo-name> ~/winmetta/<repo-name>`
+- **Getting a repo that isn't cloned yet:** run `gh repo clone winmetta/<repo-name>` from the workspace root
 - **What a repo does:** read its `AGENTS.md` / `README.md` (locally or via `gh repo view`), not this file.
 
 ## 3. Conventions for New Repos
 
-- **Location:** clone or create every `winmetta` org repo directly under `~/winmetta/<repo-name>/`, using the GitHub repo name as the directory name.
+- **Location:** clone or create every `winmetta` org repo directly under the workspace root as `<workspace>/<repo-name>/`, using the GitHub repo name as the directory name.
 - **Naming:** use the `winmetta-` prefix for anything user-facing. Internal or ops tooling can use a plain descriptive name.
 - **Agent docs:** every repo should have its own `AGENTS.md`, with `CLAUDE.md` as a symlink to it (`ln -s AGENTS.md CLAUDE.md`). Cover what the repo is, commands, architecture, and conventions specific to that repo.
 - **Visibility:** assume **public** unless the repo handles credentials, member data, or internal operations. Those repos are private. Never commit secrets. Use env vars or local config files listed in `.gitignore`.
@@ -51,7 +53,8 @@ These come from the mission and apply to every repo unless the repo's own docs s
 
 ## 5. Working in This Workspace (for AI agents)
 
-- Work inside the specific repo a task is about. Don't create files at the workspace root other than this `AGENTS.md` / `CLAUDE.md`.
+- Work inside the specific repo a task is about. Don't create files at the workspace root. It should contain only repo clones plus the `AGENTS.md` / `CLAUDE.md` symlinks.
+- To change this file, edit `.github/AGENTS.md` and commit it in the `.github` repo. Don't replace the root symlinks with regular files.
 - Each repo has its own git history. Run git commands from inside the repo, and never assume changes span repos.
 - If a task touches more than one repo, make and commit the changes in each repo separately.
-- If a task needs a repo that isn't cloned, find it with `gh` (see §2) and clone it into `~/winmetta/`. Don't assume what the org contains.
+- If a task needs a repo that isn't cloned, find it with `gh` (see §2) and clone it into the workspace root. Don't assume what the org contains.
