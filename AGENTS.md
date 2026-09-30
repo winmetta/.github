@@ -58,3 +58,4 @@ These come from the mission and apply to every repo unless the repo's own docs s
 - Each repo has its own git history. Run git commands from inside the repo, and never assume changes span repos.
 - If a task touches more than one repo, make and commit the changes in each repo separately.
 - If a task needs a repo that isn't cloned, find it with `gh` (see §2) and clone it into the workspace root. Don't assume what the org contains.
+- **Commit messages:** use [Conventional Commits](https://www.conventionalcommits.org/) format (`<type>(<optional scope>): <description>`, e.g. `fix(retreat-bell): correct timezone offset`, `docs: clarify setup steps`). Common types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`. Applies to every repo in this workspace unless a repo's own docs say otherwise.
