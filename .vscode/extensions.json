@@ -1,0 +1,26 @@
+{
+  "recommendations": [
+    "timonwong.shellcheck",
+    "astro-build.astro-vscode",
+    "aaron-bond.better-comments",
+    "anthropic.claude-code",
+    "formulahendry.code-runner",
+    "openai.chatgpt",
+    "dracula-theme.theme-dracula",
+    "editorconfig.editorconfig",
+    "dbaeumer.vscode-eslint",
+    "tamasfe.even-better-toml",
+    "github.vscode-github-actions",
+    "codezombiech.gitignore",
+    "eamodio.gitlens",
+    "christian-kohler.path-intellisense",
+    "ms-playwright.playwright",
+    "ckolkman.vscode-postgres",
+    "esbenp.prettier-vscode",
+    "humao.rest-client",
+    "flyfly6.terminal-in-status-bar",
+    "iancovski.reveal-in-explorer",
+    "mkhl.shfmt",
+    "davidanson.vscode-markdownlint"
+  ]
+}
