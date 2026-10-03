@@ -6,6 +6,7 @@ Org-wide defaults, shared AI-agent context, and the **starting point for develop
 - [link-workspace.sh](link-workspace.sh): sets up the local workspace (symlinks into the workspace root)
 - [bootstrap-dev-env.sh](bootstrap-dev-env.sh): installs the shared developer tools (macOS only for now)
 - [.editorconfig](.editorconfig): shared indentation, line-ending and column settings for Markdown and shell scripts
+- [.markdownlint.json](.markdownlint.json): shared markdownlint rules (long lines allowed)
 - [.vscode/extensions.json](.vscode/extensions.json): recommended (optional) VS Code extensions, shared by the whole workspace
 
 ## Developer setup
@@ -43,6 +44,7 @@ gh repo clone winmetta/.github
 <workspace>/
 ├── .github/                          # this repo
 ├── .editorconfig -> .github/.editorconfig
+├── .markdownlint.json -> .github/.markdownlint.json
 ├── .vscode/extensions.json -> ../.github/.vscode/extensions.json
 ├── winmetta.code-workspace -> .github/winmetta.code-workspace
 ├── AGENTS.md -> .github/AGENTS.md
@@ -50,14 +52,39 @@ gh repo clone winmetta/.github
 └── <repo-name>/                      # other winmetta repos, cloned as needed
 ```
 
-The script is safe to run more than once. Open `winmetta.code-workspace` in VS Code to accept the recommended extensions.
+The script is safe to run more than once.
+
+#### Open the workspace in VS Code
+
+Always open the workspace through the link in the **workspace root**, not the copy inside `.github/`:
+
+```bash
+code "$WORKSPACE/winmetta.code-workspace"
+```
+
+Or, in VS Code, use **File → Open Workspace from File…** and choose `winmetta.code-workspace` in the workspace root (e.g. `~/winmetta`). The workspace's folder and its tasks are relative to the workspace root. Opening `.github/winmetta.code-workspace` directly makes `.github` the root instead, so you won't see the other repos and the tasks fail. Opening the workspace gives you the shared editor settings, a prompt for the recommended extensions, and **Tasks: Run Task** entries for the setup scripts.
 
 ### 3. Clone the repos you need
 
+Always clone from the workspace root, so each repo lands in `<workspace>/<repo-name>/`:
+
 ```bash
-gh repo list winmetta --limit 100
-gh repo clone winmetta/<repo-name>    # run from the workspace root
+cd "$WORKSPACE"
+gh repo list winmetta --limit 100          # see what exists
+gh repo clone winmetta/<repo-name>         # clone one repo
 ```
+
+To clone every active org repo you can access that is not already cloned:
+
+```bash
+cd "$WORKSPACE"
+gh repo list winmetta --limit 100 --no-archived --json name -q '.[].name' |
+  while read -r repo; do
+    [ -d "$repo" ] || gh repo clone "winmetta/$repo"
+  done
+```
+
+This includes sample and experimental repos such as `demo-repository`. Skip any you don't need.
 
 ### 4. Install the shared dev tools
 
@@ -83,6 +110,16 @@ If a tool fails to install, the script keeps going and lists every failure with 
 
 Tools already on your `PATH` are skipped, so existing installs are left alone. After it finishes, sign in once with `gh auth login`, `claude` and `codex`.
 
+### 5. Set up the repo
+
+Each repo owns its own setup (language runtime, dependencies, browsers), documented in its `README.md` / `CONTRIBUTING.md` / `AGENTS.md`. These override this file. For example, `winmetta-platform` provides `./scripts/setup-local-dev.sh`.
+
+| Repo | Start here |
+| --- | --- |
+| `winmetta-platform` | [CONTRIBUTING.md](https://github.com/winmetta/winmetta-platform/blob/main/CONTRIBUTING.md), [developer guide](https://github.com/winmetta/winmetta-platform/blob/main/docs/developer-guide.md), [implementation plan](https://github.com/winmetta/winmetta-platform/blob/main/docs/implementation-plan.md) |
+
+## Reference
+
 ### Manual install (if you don't use the script)
 
 | Tool | Why | Install |
@@ -100,14 +137,6 @@ Tools already on your `PATH` are skipped, so existing installs are left alone. A
 ### Example: `winmetta-platform`
 
 `winmetta-platform` is an [Astro](https://astro.build/) static site with React islands, Tailwind CSS and shadcn/ui, in an npm-workspaces monorepo run with Turborepo. Its own `./scripts/setup-local-dev.sh` installs Node 24 and npm 11 (from `.nvmrc` and `packageManager`), locked dependencies and the Playwright browser. Tooling: ESLint, Prettier, TypeScript, Vitest for unit tests and Playwright for browser smoke tests. No Docker, database or env file is needed for local work. Terraform and Azure tooling arrive with Phase 2 deployment and are not installed yet.
-
-### 5. Set up the repo
-
-Each repo owns its own setup (language runtime, dependencies, browsers), documented in its `README.md` / `CONTRIBUTING.md` / `AGENTS.md`. These override this file. For example, `winmetta-platform` provides `./scripts/setup-local-dev.sh`.
-
-| Repo | Start here |
-| --- | --- |
-| `winmetta-platform` | [CONTRIBUTING.md](https://github.com/winmetta/winmetta-platform/blob/main/CONTRIBUTING.md), [developer guide](https://github.com/winmetta/winmetta-platform/blob/main/docs/developer-guide.md), [implementation plan](https://github.com/winmetta/winmetta-platform/blob/main/docs/implementation-plan.md) |
 
 ## Editing AGENTS.md
 

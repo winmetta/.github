@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sets up the Win Metta workspace root (the parent directory of this repo).
-# Creates symlinks there for AGENTS.md, CLAUDE.md, .editorconfig, the workspace
-# file and .vscode/extensions.json. Safe to re-run.
+# Creates symlinks there for AGENTS.md, CLAUDE.md, .editorconfig,
+# .markdownlint.json, the workspace file and .vscode/extensions.json. Safe to re-run.
 set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,6 +24,7 @@ link() {
 link "$repo_name/winmetta.code-workspace" winmetta.code-workspace
 link "../$repo_name/.vscode/extensions.json" .vscode/extensions.json
 link "$repo_name/.editorconfig" .editorconfig
+link "$repo_name/.markdownlint.json" .markdownlint.json
 link "$repo_name/AGENTS.md" AGENTS.md
 link AGENTS.md CLAUDE.md
 

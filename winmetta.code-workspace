@@ -1,7 +1,96 @@
 {
+  // Shared Win Metta VS Code workspace. Linked into the workspace root by
+  // link-workspace.sh. Open it with: code winmetta.code-workspace
+  // Recommended extensions live in .vscode/extensions.json.
   "folders": [
     {
       "path": ".",
     },
   ],
+  "settings": {
+    // Whitespace and line endings come from the shared .editorconfig.
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+
+    // Format on save, but only with the formatter each repo configures.
+    "editor.formatOnSave": true,
+    "prettier.requireConfig": true,
+    "[shellscript]": {
+      "editor.defaultFormatter": "mkhl.shfmt",
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[astro]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[jsonc]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[css]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+
+    // The workspace root holds many repos; find each repo's ESLint config.
+    "eslint.workingDirectories": [{ "mode": "auto" }],
+    "eslint.validate": ["javascript", "typescript", "typescriptreact", "astro"],
+
+    // markdownlint rules live in the shared .markdownlint.json.
+
+    // Keep search and the file watcher fast across many repos.
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.astro": true,
+      "**/.turbo": true,
+      "**/test-results": true,
+      "**/playwright-report": true,
+      "**/package-lock.json": true,
+    },
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/dist/**": true,
+      "**/.astro/**": true,
+      "**/.turbo/**": true,
+      "**/.git/objects/**": true,
+    },
+
+    // Find the nested repos for Source Control.
+    "git.repositoryScanMaxDepth": 2,
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Bootstrap dev environment (shared tools)",
+        "type": "shell",
+        "command": "./.github/bootstrap-dev-env.sh",
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "dedicated" },
+      },
+      {
+        "label": "Set up winmetta-platform",
+        "type": "shell",
+        "command": "./winmetta-platform/scripts/setup-local-dev.sh",
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "dedicated" },
+      },
+      {
+        "label": "Lint shell scripts (shellcheck + shfmt)",
+        "type": "shell",
+        "command": "shellcheck .github/*.sh winmetta-platform/scripts/*.sh && shfmt -d .github/*.sh winmetta-platform/scripts/*.sh",
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "shared" },
+      },
+    ],
+  },
 }
