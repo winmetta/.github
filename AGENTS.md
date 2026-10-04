@@ -55,6 +55,7 @@ These come from the mission and apply to every repo unless the repo's own docs s
 
 - Work inside the specific repo a task is about. Don't create files at the workspace root. It should contain only repo clones plus the `AGENTS.md` / `CLAUDE.md` symlinks.
 - To change this file, edit `.github/AGENTS.md` and commit it in the `.github` repo. Don't replace the root symlinks with regular files.
+- **File paths in replies:** write every file path relative to the workspace root (the directory containing this file, usually `~/winmetta`), starting with the repo directory name, e.g. `winmetta-platform/apps/web/src/i18n/messages/my.json`, not `apps/web/src/i18n/messages/my.json`. The desktop app resolves clickable links and its file pane from the session's working directory, so a path without the repo name shows "Couldn't find this file". This applies to links, inline code paths and `path:line` references, in every repo.
 - Each repo has its own git history. Run git commands from inside the repo, and never assume changes span repos.
 - If a task touches more than one repo, make and commit the changes in each repo separately.
 - If a task needs a repo that isn't cloned, find it with `gh` (see §2) and clone it into the workspace root. Don't assume what the org contains.
