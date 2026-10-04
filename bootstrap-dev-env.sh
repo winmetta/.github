@@ -3,7 +3,7 @@
 #
 # Installs the tools shared by every Win Metta repo: Xcode Command Line Tools,
 # Homebrew, git, curl, gh, shellcheck, shfmt, nvm, VS Code (plus the required
-# extensions listed in VSCODE_EXTENSIONS below), Claude Code and Codex CLI.
+# extensions listed in VSCODE_EXTENSIONS below), Claude Code, Codex CLI and Antigravity CLI.
 # Other extensions are optional: see .github/.vscode/extensions.json.
 #
 # Only the steps everything else depends on (platform check, Command Line Tools,
@@ -20,7 +20,7 @@ NVM_VERSION="v0.40.3"
 VSCODE_APP="/Applications/Visual Studio Code.app"
 # "name:command[:app path]"; the command (or app) is what we look for to skip installs.
 BREW_FORMULAE=(git:git curl:curl gh:gh shellcheck:shellcheck shfmt:shfmt)
-BREW_CASKS=("visual-studio-code:code:$VSCODE_APP" claude-code:claude codex:codex)
+BREW_CASKS=("visual-studio-code:code:$VSCODE_APP" claude-code:claude codex:codex antigravity-cli:agy)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
 VSCODE_EXTENSIONS=(
 	dbaeumer.vscode-eslint
@@ -170,9 +170,9 @@ install_cli_tools() {
 }
 
 install_editor_and_ai_tools() {
-	log_step "VS Code, Claude Code and Codex CLI"
+	log_step "VS Code, Claude Code, Codex CLI and Antigravity CLI"
 	brew_install_all cask "${BREW_CASKS[@]}"
-	log_info "sign in later with: gh auth login, claude, codex"
+	log_info "sign in later with: gh auth login, claude, codex, agy"
 }
 
 # Prefer `code` on PATH; fall back to the CLI bundled in the app.
@@ -240,7 +240,7 @@ print_summary() {
 	for item in "${NOTES[@]+"${NOTES[@]}"}"; do
 		log_warn "$item"
 	done
-	log_info "Next: sign in with 'gh auth login', 'claude' and 'codex'."
+	log_info "Next: sign in with 'gh auth login', 'claude', 'codex' and 'agy'."
 	log_info "Then clone a repo and run its own setup script (see that repo's README)."
 	((${#FAILURES[@]} == 0))
 }

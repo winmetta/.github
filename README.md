@@ -100,7 +100,7 @@ Run once per machine, from the workspace root:
 2. installs Xcode Command Line Tools (if it asks you to finish the installer, do that and re-run)
 3. installs [Homebrew](https://brew.sh/)
 4. installs CLI tools: `git`, `curl`, `gh`, `shellcheck`, `shfmt`
-5. installs apps: [VS Code](https://code.visualstudio.com/), [Claude Code](https://claude.com/product/claude-code) and [Codex CLI](https://github.com/openai/codex)
+5. installs the editor and AI tools: [VS Code](https://code.visualstudio.com/), [Claude Code](https://claude.com/product/claude-code), [Codex CLI](https://github.com/openai/codex) and [Antigravity CLI](https://antigravity.google/docs/cli/)
 6. installs the required VS Code extensions (ESLint, Prettier, Astro, ShellCheck, shfmt, EditorConfig, markdownlint, Playwright, Claude Code), hard-coded in the script. The wider optional set stays in [.vscode/extensions.json](.vscode/extensions.json) as recommendations
 7. installs [nvm](https://github.com/nvm-sh/nvm)
 
@@ -108,7 +108,7 @@ It does **not** set up any individual repo. **Other operating systems are not su
 
 If a tool fails to install, the script keeps going and lists every failure with a manual fix at the end (exit code 1). Only Command Line Tools and Homebrew stop it, because everything else depends on them. Fix the listed items by hand or fix the script, then re-run.
 
-Tools already on your `PATH` are skipped, so existing installs are left alone. After it finishes, sign in once with `gh auth login`, `claude` and `codex`.
+Tools already on your `PATH` are skipped, so existing installs are left alone. After it finishes, sign in once with `gh auth login`, `claude`, `codex` and `agy`.
 
 ### 5. Set up the repo
 
@@ -132,6 +132,7 @@ Each repo owns its own setup (language runtime, dependencies, browsers), documen
 | VS Code | editor | `brew install --cask visual-studio-code` |
 | Claude Code | AI coding agent | `brew install --cask claude-code` |
 | Codex CLI | AI coding agent | `brew install --cask codex` |
+| Antigravity CLI | AI coding agent | `brew install --cask antigravity-cli` |
 | VS Code extensions | required set | `code --install-extension <id>` for each ID in `VSCODE_EXTENSIONS` in `bootstrap-dev-env.sh` |
 
 ### Example: `winmetta-platform`
