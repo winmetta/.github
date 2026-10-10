@@ -1,5 +1,5 @@
 " Win Metta shared vim config. bootstrap-dev-env.sh copies this to
-" ~/.config/winmetta/vimrc and adds a `source` line for it at the top of
+" ~/.config/winmetta/.vimrc and adds a `source` line for it at the top of
 " ~/.vimrc, so anything you write below that line in ~/.vimrc overrides it.
 
 " A user vimrc turns off Vim's built-in defaults (backspace over everything,
@@ -25,8 +25,11 @@ endfunction
 " :W saves a file you do not own by writing it through sudo.
 command! W execute 'w !sudo tee % > /dev/null' <bar> edit!
 
-" Mouse support in all modes.
-set mouse=a
+" Mouse off, so you can select and copy text in the terminal (iTerm, Terminal)
+" the normal way. Vim's defaults turn the mouse on, which makes a drag move the
+" cursor or select inside vim instead. To use the mouse in vim again, put
+" `set mouse=a` in your own ~/.vimrc below the source line.
+set mouse=
 
 " Show line numbers.
 set number

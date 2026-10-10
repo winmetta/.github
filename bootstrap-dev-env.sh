@@ -5,23 +5,28 @@
 # Do not use associative arrays, mapfile/readarray, ${var,,} or ${var^^}, declare -n
 # or other bash 4+ features. Check with: shellcheck -s bash bootstrap-dev-env.sh
 #
-# Installs the tools shared by every Win Metta repo: Xcode Command Line Tools
-# (which provides git, curl and the compiler), mise (the tool and version
-# manager), the CLI tools gh, shellcheck, shfmt, the AI coding agents claude and codex, the
-# starship prompt, the latest Node.js LTS and the latest stable Python 3, vim, a modern bash, wget and the search/navigation tools
-# ripgrep, fd, sd, bat, fzf and zoxide, and the Markdown checker and formatter
-# markdownlint-cli2 and prettier, and lefthook with gitleaks for git hooks (via mise), and the required
-# VS Code extensions listed in VSCODE_EXTENSIONS below. It also copies the
-# JetBrains Mono Nerd Font .ttf files into ~/Library/Fonts (no Homebrew or admin
-# rights needed) and installs iTerm2 (into ~/Applications) with the "winmetta" iTerm2 profile
-# (iterm/winmetta.json, which uses that font) and makes it the default. It activates mise and
-# starship in ~/.zshrc (the macOS default shell) and ~/.bashrc, and makes ~/.bash_profile
-# load ~/.bashrc, because Terminal.app starts bash as a login shell. It also sets the
-# git author (suggested from your GitHub account), installs shared git settings and
-# aliases (git/winmetta.gitconfig) and installs `explain-*` shell helpers (run `explain` to list them). It sets up vim with a shared vimrc
-# (vim/.vimrc) and the plugins in VIM_PLUGINS. Zed is downloaded into ~/Applications
-# if missing, its `zed` command is linked into ~/.local/bin and git's editor is set to
-# Zed or vim (asked once).
+# Sets up the machine for every Win Metta repo. Steps, in the order they run
+# (see .github/README.md for the details of each):
+#   - Xcode Command Line Tools (git, curl, compiler) and mise, the tool manager,
+#     activated in ~/.zshrc and ~/.bashrc (and ~/.bash_profile loads ~/.bashrc,
+#     because Terminal.app starts bash as a login shell)
+#   - CLI tools, installed with mise (see MISE_TOOLS below): gh, shellcheck, shfmt,
+#     claude, codex, starship, Node.js LTS, Python 3, vim, a modern bash, wget,
+#     ripgrep, fd, sd, bat, fzf, zoxide, tree, jq, markdownlint-cli2, prettier,
+#     lefthook and gitleaks
+#   - git: author name and email (suggested from your GitHub account), shared
+#     settings and aliases (git/winmetta.gitconfig), a global ignore file with
+#     .DS_Store (git/ignore), the commit-message editor (Zed or vim), and the
+#     lefthook hooks of this repo
+#   - shell: starship config, zoxide and fzf, the explain-* helpers with their
+#     cheat sheets (shell/explain.sh, shell/cheatsheets), aliases (shell/aliases.sh)
+#   - vim: the shared vimrc (vim/.vimrc) and the plugins in VIM_PLUGINS
+#   - apps, into ~/Applications with no admin rights or Homebrew: iTerm2 with the
+#     "winmetta" profile as the default (iterm/winmetta.json), and Zed with its
+#     zed command linked into ~/.local/bin
+#   - macOS: no .DS_Store files on network shares and USB drives (a Finder preference)
+#   - the JetBrains Mono Nerd Font (.ttf files into ~/Library/Fonts) and the
+#     required VS Code extensions listed in VSCODE_EXTENSIONS below
 #
 # VS Code and Antigravity CLI have no mise package and are installed by hand; see
 # the README. Only the steps everything else depends on (platform
@@ -47,11 +52,15 @@ ITERM_PROFILE_DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/win
 ITERM_PROFILE_GUID="202DEC0E-11DE-43C2-A8D2-6A2399F97A1B"
 FZF_SH_SRC="$SCRIPT_DIR/shell/fzf.sh"
 FZF_SH_DEST="$HOME/.config/winmetta/fzf.sh"
+ALIASES_SRC="$SCRIPT_DIR/shell/aliases.sh"
+ALIASES_DEST="$HOME/.config/winmetta/aliases.sh"
+SHEETS_SRC="$SCRIPT_DIR/shell/cheatsheets"
+SHEETS_DEST="$HOME/.config/winmetta/cheatsheets"
 EXPLAIN_SRC="$SCRIPT_DIR/shell/explain.sh"
 EXPLAIN_DEST="$HOME/.config/winmetta/explain.sh"
 ZED_APPS=("/Applications/Zed.app" "$HOME/Applications/Zed.app")
 VIMRC_SRC="$SCRIPT_DIR/vim/.vimrc"
-VIMRC_DEST="$HOME/.config/winmetta/vimrc"
+VIMRC_DEST="$HOME/.config/winmetta/.vimrc"
 VIM_PACK_DIR="$HOME/.vim/pack/winmetta/start"
 # "owner/repo" of vim plugins loaded at startup (vim 8+ native packages, no plugin manager).
 VIM_PLUGINS=(
@@ -62,6 +71,8 @@ VIM_PLUGINS=(
 	tpope/vim-commentary
 	github/copilot.vim
 )
+DESKTOPSERVICES_DOMAIN="com.apple.desktopservices"
+GIT_IGNORE_SRC="$SCRIPT_DIR/git/ignore"
 GIT_CONFIG_SRC="$SCRIPT_DIR/git/winmetta.gitconfig"
 GIT_CONFIG_DEST="$HOME/.config/git/winmetta.gitconfig"
 GIT_GLOBAL_CONFIG="${GIT_CONFIG_GLOBAL:-$HOME/.gitconfig}"
@@ -69,7 +80,7 @@ STARSHIP_CONFIG_SRC="$SCRIPT_DIR/starship/starship.toml"
 STARSHIP_CONFIG_DEST="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
 # "tool:command" (the command is the part after the LAST colon, so tools like
 # conda:bash work); the command is used to warn about non-mise copies on PATH.
-MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3 vim:vim conda:bash:bash conda:wget:wget ripgrep:rg fd:fd sd:sd bat:bat fzf:fzf zoxide:zoxide npm:markdownlint-cli2:markdownlint-cli2 npm:prettier:prettier lefthook:lefthook gitleaks:gitleaks)
+MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3 vim:vim conda:bash:bash conda:wget:wget ripgrep:rg fd:fd sd:sd bat:bat fzf:fzf zoxide:zoxide conda:tree:tree jq:jq npm:markdownlint-cli2:markdownlint-cli2 npm:prettier:prettier lefthook:lefthook gitleaks:gitleaks)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
 VSCODE_EXTENSIONS=(
 	dbaeumer.vscode-eslint
@@ -386,11 +397,62 @@ install_git_config() {
 	return $rc
 }
 
+# Add the patterns from git/ignore (such as .DS_Store) to your global ignore file:
+# the one core.excludesFile already points to, else git's default
+# ~/.config/git/ignore (which git reads without any setting). Lines you already
+# have are left alone, and nothing is ever removed.
+install_git_ignore() {
+	local target line added=0
+	target="$(git config --global --type=path --get core.excludesFile 2>/dev/null || true)"
+	[[ -n "$target" ]] || target="${XDG_CONFIG_HOME:-$HOME/.config}/git/ignore"
+	mkdir -p "$(dirname "$target")" && touch "$target" || return 1
+	while IFS= read -r line; do
+		[[ -n "$line" && "$line" != \#* ]] || continue
+		if ! grep -qxF -- "$line" "$target"; then
+			# A last line without a newline would get glued to the new pattern.
+			if [[ -s "$target" && -n "$(tail -c 1 "$target")" ]]; then printf '\n' >>"$target"; fi
+			printf '%s\n' "$line" >>"$target" || return 1
+			added=$((added + 1))
+		fi
+	done <"$GIT_IGNORE_SRC"
+	log_info "global ignore file: $target ($added line(s) added)"
+}
+
 configure_git() {
 	log_step "git settings and aliases"
 	attempt "install git settings and aliases" \
 		"copy .github/git/winmetta.gitconfig to '$GIT_CONFIG_DEST' and add an [include] path for it at the top of ~/.gitconfig" \
 		install_git_config
+	attempt "ignore .DS_Store and friends in every repo" \
+		"add the lines from .github/git/ignore to ~/.config/git/ignore (or the file core.excludesFile points to)" \
+		install_git_ignore
+}
+
+# Install the shared shell aliases (ll, la, tree2, ...): copy shell/aliases.sh to
+# ~/.config/winmetta/aliases.sh (replaced on every run, it is ours) and source it
+# from a startup file, once.
+configure_aliases_in() {
+	local rc="$1"
+	if grep -qF "$ALIASES_DEST" "$rc" 2>/dev/null; then
+		log_ok "aliases already sourced in $rc"
+	else
+		printf '%s\n' "[ -f \"$ALIASES_DEST\" ] && . \"$ALIASES_DEST\"" >>"$rc"
+		log_ok "sourced the aliases in $rc"
+	fi
+}
+
+install_aliases() {
+	mkdir -p "$(dirname "$ALIASES_DEST")" && cp "$ALIASES_SRC" "$ALIASES_DEST" || return 1
+	configure_aliases_in "${ZDOTDIR:-$HOME}/.zshrc"
+	configure_aliases_in "$HOME/.bashrc"
+}
+
+configure_aliases() {
+	log_step "shell aliases (ll, la, tree2, ...)"
+	attempt "install shell aliases" \
+		"copy .github/shell/aliases.sh to '$ALIASES_DEST' and add '. $ALIASES_DEST' to ~/.zshrc and ~/.bashrc" \
+		install_aliases
+	log_info "Run 'explain-aliases' in a new terminal to see them."
 }
 
 # Install the explain-* shell helpers: copy shell/explain.sh to
@@ -414,6 +476,8 @@ configure_explain_in() {
 
 install_explain() {
 	mkdir -p "$(dirname "$EXPLAIN_DEST")" && cp "$EXPLAIN_SRC" "$EXPLAIN_DEST" || return 1
+	# One explain-<tool> cheat sheet per .txt file; sheets removed from the repo stay until you delete them.
+	mkdir -p "$SHEETS_DEST" && cp "$SHEETS_SRC"/*.txt "$SHEETS_DEST/" || return 1
 	configure_explain_in "${ZDOTDIR:-$HOME}/.zshrc"
 	configure_explain_in "$HOME/.bashrc"
 }
@@ -421,7 +485,7 @@ install_explain() {
 configure_explain() {
 	log_step "shell helpers (explain-*)"
 	attempt "install explain-* shell helpers" \
-		"copy .github/shell/explain.sh to '$EXPLAIN_DEST' and add '. $EXPLAIN_DEST' to ~/.zshrc and ~/.bashrc" \
+		"copy .github/shell/explain.sh to '$EXPLAIN_DEST', .github/shell/cheatsheets/*.txt to '$SHEETS_DEST', and add '. $EXPLAIN_DEST' to ~/.zshrc and ~/.bashrc" \
 		install_explain
 	log_info "Run 'explain' in a new terminal to list them."
 }
@@ -540,6 +604,27 @@ configure_git_hooks() {
 		install_git_hooks
 }
 
+# Stop macOS from writing .DS_Store files on network shares and USB drives. (The
+# global git ignore file hides them in git; this keeps them off other people's
+# drives and servers in the first place.) Existing .DS_Store files are not
+# removed, and the setting applies after you log out and back in.
+configure_macos_defaults() {
+	log_step "macOS: no .DS_Store files on network shares and USB drives"
+	local key changed=0
+	for key in DSDontWriteNetworkStores DSDontWriteUSBStores; do
+		if [[ "$(defaults read "$DESKTOPSERVICES_DOMAIN" "$key" 2>/dev/null)" == 1 ]]; then
+			log_ok "$key already on"
+		else
+			attempt "set $key" "defaults write $DESKTOPSERVICES_DOMAIN $key -bool true" \
+				defaults write "$DESKTOPSERVICES_DOMAIN" "$key" -bool true
+			if [[ "$(defaults read "$DESKTOPSERVICES_DOMAIN" "$key" 2>/dev/null)" == 1 ]]; then changed=1; fi
+		fi
+	done
+	if ((changed)); then
+		NOTES+=("Log out and back in (or restart) so macOS stops writing .DS_Store files on network shares and USB drives.")
+	fi
+}
+
 # Run vim from mise when it has one, else whatever vim is on PATH.
 run_vim() {
 	local mise_bin
@@ -565,12 +650,26 @@ install_vim_plugin() {
 	fi
 }
 
-# Copy the shared vimrc to ~/.config/winmetta/vimrc (replaced every run) and
+# Copy the shared vimrc to ~/.config/winmetta/.vimrc (replaced every run) and
 # source it from the TOP of ~/.vimrc, so your own settings below it win.
 install_vimrc() {
-	local rc="$HOME/.vimrc" line tmp
+	local rc="$HOME/.vimrc" line tmp old_dest="$HOME/.config/winmetta/vimrc"
 	line="source $VIMRC_DEST"
 	mkdir -p "$(dirname "$VIMRC_DEST")" && cp "$VIMRC_SRC" "$VIMRC_DEST" || return 1
+	# Earlier versions installed it as ~/.config/winmetta/vimrc (no dot): point
+	# ~/.vimrc at the new name and remove the old copy.
+	if [[ -f "$old_dest" ]]; then
+		if grep -qxF "source $old_dest" "$rc" 2>/dev/null; then
+			sed -i.bak "s#^source $old_dest\$#$line#" "$rc" && rm -f "$rc.bak"
+		fi
+		# Delete the old copy only once nothing in ~/.vimrc points at it any more
+		# (a hand-written `source ~/.config/winmetta/vimrc` would break otherwise).
+		if grep -qF "winmetta/vimrc" "$rc" 2>/dev/null; then
+			log_info "$rc still mentions $old_dest; left the old file in place"
+		else
+			rm -f "$old_dest"
+		fi
+	fi
 	if grep -qxF "$line" "$rc" 2>/dev/null; then
 		log_info "$rc already sources it"
 		return 0
@@ -775,7 +874,7 @@ warn_if_not_mise() {
 }
 
 install_cli_tools() {
-	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python, vim, bash, wget, rg, fd, sd, bat, fzf, zoxide, markdownlint, prettier, lefthook, gitleaks)"
+	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python, vim, bash, wget, rg, fd, sd, bat, fzf, zoxide, tree, jq, markdownlint, prettier, lefthook, gitleaks)"
 	mise_install_all "${MISE_TOOLS[@]}"
 }
 
@@ -847,12 +946,14 @@ main() {
 	configure_starship
 	configure_shell_tools
 	configure_explain
+	configure_aliases
 	configure_vim
 	install_fonts
 	configure_iterm
 	configure_zed
 	configure_git_editor
 	configure_git_hooks
+	configure_macos_defaults
 	note_manual_apps
 	install_vscode_extensions
 	print_summary || exit 1

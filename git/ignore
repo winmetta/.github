@@ -1,0 +1,4 @@
+# Win Metta patterns that git should ignore in every repo (a global ignore file).
+# bootstrap-dev-env.sh adds any line below that is missing to your global ignore
+# file (core.excludesFile, default ~/.config/git/ignore). It never removes lines.
+.DS_Store
