@@ -1,26 +1,33 @@
 #!/usr/bin/env bash
 # Win Metta developer environment bootstrap (macOS only). Safe to re-run.
 #
-# Installs the tools shared by every Win Metta repo: Xcode Command Line Tools,
-# Homebrew, git, curl, gh, shellcheck, shfmt, nvm, VS Code (plus the required
-# extensions listed in VSCODE_EXTENSIONS below), Claude Code, Codex CLI and Antigravity CLI.
-# Other extensions are optional: see .github/.vscode/extensions.json.
+# Compatibility: this must run on the bash 3.2 that ships with macOS (/bin/bash).
+# Do not use associative arrays, mapfile/readarray, ${var,,} or ${var^^}, declare -n
+# or other bash 4+ features. Check with: shellcheck -s bash bootstrap-dev-env.sh
 #
-# Only the steps everything else depends on (platform check, Command Line Tools,
-# Homebrew) stop the script. If any other tool fails to install, the script keeps
-# going and lists every failure with a manual fix at the end (exit code 1).
+# Installs the tools shared by every Win Metta repo: Xcode Command Line Tools
+# (which provides git, curl and the compiler), mise (the tool and version
+# manager), the CLI tools gh, shellcheck, shfmt, the AI coding agents claude and codex, and the latest Node.js LTS (via mise), and the required
+# VS Code extensions listed in VSCODE_EXTENSIONS below. It activates mise in
+# ~/.zshrc (the macOS default shell) and ~/.bashrc, and makes ~/.bash_profile
+# load ~/.bashrc, because Terminal.app starts bash as a login shell.
 #
-# Repo-specific setup (Node version, dependencies, browsers) belongs to each repo.
-# Run that repo's own setup script afterwards, e.g. winmetta-platform/scripts/setup-local-dev.sh.
+# VS Code and Antigravity CLI have no mise package and are installed by hand; see
+# the README. Only the steps everything else depends on (platform
+# check, Command Line Tools, mise) stop the script. If any other tool fails to
+# install, the script keeps going and lists every failure with a manual fix at
+# the end (exit code 1).
+#
+# Repo-specific setup (the pinned Node version, dependencies, browsers) belongs to each
+# repo and is managed with mise there. Run that repo's own setup script
+# afterwards, e.g. winmetta-platform/scripts/setup-local-dev.sh.
 #
 # Usage: ./.github/bootstrap-dev-env.sh
 set -Eeuo pipefail
 
-NVM_VERSION="v0.40.3"
 VSCODE_APP="/Applications/Visual Studio Code.app"
-# "name:command[:app path]"; the command (or app) is what we look for to skip installs.
-BREW_FORMULAE=(git:git curl:curl gh:gh shellcheck:shellcheck shfmt:shfmt)
-BREW_CASKS=("visual-studio-code:code:$VSCODE_APP" claude-code:claude codex:codex antigravity-cli:agy)
+# "tool:command"; the command is what we look for on PATH to skip installs.
+MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex node@lts:node)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
 VSCODE_EXTENSIONS=(
 	dbaeumer.vscode-eslint
@@ -100,79 +107,111 @@ install_command_line_tools() {
 	die "Complete the Command Line Tools installer, then rerun this script."
 }
 
-# Existing Homebrew may not yet be in this shell's PATH.
-load_brew_env() {
-	if [[ -x /opt/homebrew/bin/brew ]]; then
-		eval "$(/opt/homebrew/bin/brew shellenv)"
-	elif [[ -x /usr/local/bin/brew ]]; then
-		eval "$(/usr/local/bin/brew shellenv)"
+# Prefer mise on PATH; fall back to the location the mise.run installer uses.
+find_mise() {
+	if command -v mise >/dev/null 2>&1; then
+		command -v mise
+	elif [[ -x "$HOME/.local/bin/mise" ]]; then
+		echo "$HOME/.local/bin/mise"
 	else
 		return 1
 	fi
 }
 
-# brew is only on PATH for this run; new terminals need it in the shell profile.
-note_brew_profile() {
-	NOTES+=("Add Homebrew to your shell: echo 'eval \"\$($(command -v brew) shellenv)\"' >> ~/.zprofile, then open a new terminal.")
-}
-
-install_homebrew() {
-	log_step "Homebrew"
-	if command -v brew >/dev/null 2>&1; then
-		log_ok "already available: $(command -v brew)"
-		return
+# Append `eval "$(mise activate <shell>)"` to a startup file unless it already
+# activates mise (any path), so re-runs and a later reinstall add no duplicates.
+activate_mise_in() {
+	local rc="$1" shell_name="$2" mise_bin="$3" activation
+	activation="eval \"\$(\"$mise_bin\" activate $shell_name)\""
+	mkdir -p "$(dirname "$rc")"
+	if grep -q 'mise.*activate' "$rc" 2>/dev/null; then
+		log_ok "mise already activated in $rc"
+	else
+		printf '%s\n' "$activation" >>"$rc"
+		log_ok "activated mise in $rc"
 	fi
-	if load_brew_env; then
-		log_ok "found and added to PATH for this run: $(command -v brew)"
-		note_brew_profile
-		return
-	fi
-	log_info "installing Homebrew"
-	local installer
-	installer="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-	/bin/bash -c "$installer"
-	load_brew_env || die "Homebrew installed but brew was not found."
-	log_ok "installed: $(command -v brew)"
-	note_brew_profile
 }
 
-# True if the tool is already available: its command is on PATH or, for casks
-# with an app bundle, the app already exists (brew refuses to overwrite it).
-already_installed() {
-	local cmd="$1" app="${2:-}"
-	command -v "$cmd" >/dev/null 2>&1 || [[ -n "$app" && -d "$app" ]]
-}
-
-# Install "name:command[:app path]" entries with brew, skipping tools already
-# present (e.g. installed earlier through npm or a direct download).
-brew_install_all() {
-	local kind="$1" entry name cmd app rest
-	shift
-	for entry in "$@"; do
-		name="${entry%%:*}" rest="${entry#*:}"
-		cmd="${rest%%:*}" app=""
-		[[ "$rest" == *:* ]] && app="${rest#*:}"
-		if already_installed "$cmd" "$app"; then
-			log_ok "$name already installed"
-		elif [[ "$kind" == cask ]]; then
-			log_info "installing $name"
-			attempt "install $name" "brew install --cask $name" brew install --cask "$name"
+# Terminal.app starts bash as a login shell, which reads ~/.bash_profile and
+# never ~/.bashrc, so make the profile load ~/.bashrc. bash reads only the first
+# of ~/.bash_profile, ~/.bash_login and ~/.profile, so if one of the latter two
+# is in use, creating ~/.bash_profile would shadow it: leave a note instead.
+ensure_bash_profile_loads_bashrc() {
+	local profile="$HOME/.bash_profile" snippet='[ -f ~/.bashrc ] && . ~/.bashrc'
+	if [[ -f "$profile" ]]; then
+		if grep -q '\.bashrc' "$profile"; then
+			log_ok "$profile already loads ~/.bashrc"
 		else
-			log_info "installing $name"
-			attempt "install $name" "brew install $name" brew install "$name"
+			printf '\n%s\n' "$snippet" >>"$profile"
+			log_ok "$profile now loads ~/.bashrc"
+		fi
+	elif [[ -f "$HOME/.bash_login" || -f "$HOME/.profile" ]]; then
+		NOTES+=("bash reads ~/.bash_login or ~/.profile here, not ~/.bash_profile: add this line to that file so bash loads mise: $snippet")
+	else
+		printf '%s\n' "$snippet" >"$profile"
+		log_ok "created $profile that loads ~/.bashrc"
+	fi
+}
+
+install_mise() {
+	log_step "mise (tool version manager)"
+	local mise_bin
+	if ! mise_bin="$(find_mise)"; then
+		log_info "installing to ~/.local/bin/mise"
+		# Runs the installer script published by mise; it is not pinned to a version.
+		if ! curl -fsSL https://mise.run | sh; then
+			die "mise failed to install. Install it by hand, then rerun: curl -fsSL https://mise.run | sh"
+		fi
+		mise_bin="$HOME/.local/bin/mise"
+		log_ok "installed: $mise_bin"
+	else
+		log_ok "already installed: $mise_bin"
+	fi
+
+	# zsh is the macOS default shell; bash is configured too for people who use it.
+	activate_mise_in "${ZDOTDIR:-$HOME}/.zshrc" zsh "$mise_bin"
+	activate_mise_in "$HOME/.bashrc" bash "$mise_bin"
+	ensure_bash_profile_loads_bashrc
+
+	case "${SHELL##*/}" in
+	zsh | bash) ;;
+	*) NOTES+=("Your login shell is '${SHELL:-unknown}', which this script does not configure. Add mise activation to its startup file: $mise_bin activate <shell>") ;;
+	esac
+}
+
+# True if the tool's command is already on PATH (e.g. installed without mise).
+already_installed() {
+	command -v "$1" >/dev/null 2>&1
+}
+
+# Install "tool:command" entries globally with mise, skipping tools already on PATH.
+mise_install_all() {
+	local entry tool cmd mise_bin
+	mise_bin="$(find_mise)" || {
+		record_failure "CLI tools (mise not found)" "install mise, then re-run this script"
+		return
+	}
+	for entry in "$@"; do
+		tool="${entry%%:*}" cmd="${entry#*:}"
+		if already_installed "$cmd"; then
+			log_ok "$tool already installed"
+		else
+			log_info "installing $tool"
+			attempt "install $tool" "mise use -g $tool" "$mise_bin" use -g "$tool"
 		fi
 	done
 }
 
 install_cli_tools() {
-	log_step "CLI tools (git, curl, gh, shellcheck, shfmt)"
-	brew_install_all formula "${BREW_FORMULAE[@]}"
+	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, Node.js LTS)"
+	mise_install_all "${MISE_TOOLS[@]}"
 }
 
-install_editor_and_ai_tools() {
-	log_step "VS Code, Claude Code, Codex CLI and Antigravity CLI"
-	brew_install_all cask "${BREW_CASKS[@]}"
-	log_info "sign in later with: gh auth login, claude, codex, agy"
+# Apps with no mise package are installed by hand, not by this script.
+note_manual_apps() {
+	log_step "Apps to install by hand"
+	log_info "This script does not install VS Code or Antigravity CLI (no mise package)."
+	log_info "Download and install them yourself (links in .github/README.md), then re-run this script."
 }
 
 # Prefer `code` on PATH; fall back to the CLI bundled in the app.
@@ -206,26 +245,6 @@ install_vscode_extensions() {
 	done
 }
 
-# nvm's installer is run from a downloaded copy; any failure returns non-zero.
-download_and_install_nvm() {
-	local installer
-	mkdir -p "$NVM_DIR" || return 1
-	installer="$(curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh")" || return 1
-	bash -c "$installer" || return 1
-	[[ -s "$NVM_DIR/nvm.sh" ]]
-}
-
-install_nvm() {
-	log_step "nvm $NVM_VERSION"
-	export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-	if [[ -s "$NVM_DIR/nvm.sh" ]]; then
-		log_ok "already installed at $NVM_DIR"
-		return
-	fi
-	log_info "installing into $NVM_DIR"
-	attempt "install nvm" "see https://github.com/nvm-sh/nvm#installing-and-updating" download_and_install_nvm
-}
-
 print_summary() {
 	local item
 	if ((${#FAILURES[@]} == 0)); then
@@ -240,7 +259,8 @@ print_summary() {
 	for item in "${NOTES[@]+"${NOTES[@]}"}"; do
 		log_warn "$item"
 	done
-	log_info "Next: sign in with 'gh auth login', 'claude', 'codex' and 'agy'."
+	log_info "Next: install VS Code and Antigravity CLI by hand and open a new terminal so mise takes effect."
+	log_info "Then sign in with 'gh auth login', 'claude', 'codex' and 'agy'."
 	log_info "Then clone a repo and run its own setup script (see that repo's README)."
 	((${#FAILURES[@]} == 0))
 }
@@ -248,12 +268,10 @@ print_summary() {
 main() {
 	check_platform
 	install_command_line_tools
-	install_homebrew
+	install_mise
 	install_cli_tools
-	install_editor_and_ai_tools
+	note_manual_apps
 	install_vscode_extensions
-	install_nvm
-	# `||` keeps the ERR trap quiet; the summary already reported the problems.
 	print_summary || exit 1
 }
 

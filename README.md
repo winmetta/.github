@@ -97,16 +97,18 @@ Run once per machine, from the workspace root:
 `bootstrap-dev-env.sh` is safe to re-run and logs each step. On **macOS** it:
 
 1. checks the platform
-2. installs Xcode Command Line Tools (if it asks you to finish the installer, do that and re-run)
-3. installs [Homebrew](https://brew.sh/)
-4. installs CLI tools: `git`, `curl`, `gh`, `shellcheck`, `shfmt`
-5. installs the editor and AI tools: [VS Code](https://code.visualstudio.com/), [Claude Code](https://claude.com/product/claude-code), [Codex CLI](https://github.com/openai/codex) and [Antigravity CLI](https://antigravity.google/docs/cli/)
-6. installs the required VS Code extensions (ESLint, Prettier, Astro, ShellCheck, shfmt, EditorConfig, markdownlint, Playwright, Claude Code), hard-coded in the script. The wider optional set stays in [.vscode/extensions.json](.vscode/extensions.json) as recommendations
-7. installs [nvm](https://github.com/nvm-sh/nvm)
+2. installs Xcode Command Line Tools (provides `git`, `curl` and the compiler; if it asks you to finish the installer, do that and re-run)
+3. installs [mise](https://mise.jdx.dev/), the tool and version manager, and activates it in `~/.zshrc` (the macOS default shell) and `~/.bashrc`. It also makes `~/.bash_profile` load `~/.bashrc`, because Terminal.app starts bash as a login shell
+4. installs CLI tools with mise: `gh`, `shellcheck`, `shfmt`, the AI coding agents `claude` ([Claude Code](https://claude.com/product/claude-code)) and `codex` ([Codex CLI](https://github.com/openai/codex)), and the latest [Node.js LTS](https://nodejs.org/en/about/previous-releases) as the global default (a repo can pin another version, and its own setup script installs that)
+5. installs the required VS Code extensions (ESLint, Prettier, Astro, ShellCheck, shfmt, EditorConfig, markdownlint, Playwright, Claude Code), hard-coded in the script. The wider optional set stays in [.vscode/extensions.json](.vscode/extensions.json) as recommendations
+
+The script does **not** install [VS Code](https://code.visualstudio.com/) or [Antigravity CLI](https://antigravity.google/docs/cli/), which have no mise package. Install them by hand, then re-run the script so it can install the VS Code extensions. A fresh machine therefore finishes the first run with a note that the VS Code CLI was not found. That is expected.
+
+The script runs on the bash 3.2 that ships with macOS, so keep it free of bash 4+ features (see the comment at the top of the script).
 
 It does **not** set up any individual repo. **Other operating systems are not supported yet.** Install the tools in the table below by hand.
 
-If a tool fails to install, the script keeps going and lists every failure with a manual fix at the end (exit code 1). Only Command Line Tools and Homebrew stop it, because everything else depends on them. Fix the listed items by hand or fix the script, then re-run.
+If a tool fails to install, the script keeps going and lists every failure with a manual fix at the end (exit code 1). Only the platform check, Command Line Tools and mise stop it, because everything else depends on them. Fix the listed items by hand or fix the script, then re-run.
 
 Tools already on your `PATH` are skipped, so existing installs are left alone. After it finishes, sign in once with `gh auth login`, `claude`, `codex` and `agy`.
 
@@ -124,15 +126,15 @@ Each repo owns its own setup (language runtime, dependencies, browsers), documen
 
 | Tool | Why | Install |
 | --- | --- | --- |
-| Homebrew | package manager | see [brew.sh](https://brew.sh/) |
-| `git`, `curl` | version control, downloads | `brew install git curl` |
-| `gh` | clone and manage org repos | `brew install gh` |
-| `shellcheck`, `shfmt` | lint and format shell scripts (VS Code extensions `timonwong.shellcheck`, `mkhl.shfmt` call them) | `brew install shellcheck shfmt` |
-| nvm | Node version manager used by Node repos | [nvm install script](https://github.com/nvm-sh/nvm#installing-and-updating) |
-| VS Code | editor | `brew install --cask visual-studio-code` |
-| Claude Code | AI coding agent | `brew install --cask claude-code` |
-| Codex CLI | AI coding agent | `brew install --cask codex` |
-| Antigravity CLI | AI coding agent | `brew install --cask antigravity-cli` |
+| Xcode Command Line Tools | `git`, `curl`, compiler | `xcode-select --install` |
+| mise | tool and version manager | `curl -fsSL https://mise.run \| sh`, then add `eval "$(~/.local/bin/mise activate zsh)"` to `~/.zshrc` |
+| `gh` | clone and manage org repos | `mise use -g gh` |
+| Node.js | JavaScript runtime (global default; repos pin their own) | `mise use -g node@lts` |
+| `shellcheck`, `shfmt` | lint and format shell scripts (VS Code extensions `timonwong.shellcheck`, `mkhl.shfmt` call them) | `mise use -g shellcheck shfmt` |
+| VS Code | editor | download from [code.visualstudio.com](https://code.visualstudio.com/) |
+| Claude Code | AI coding agent | `mise use -g claude` |
+| Codex CLI | AI coding agent | `mise use -g codex` |
+| Antigravity CLI | AI coding agent | download from [antigravity.google](https://antigravity.google/docs/cli/) |
 | VS Code extensions | required set | `code --install-extension <id>` for each ID in `VSCODE_EXTENSIONS` in `bootstrap-dev-env.sh` |
 
 ### Example: `winmetta-platform`
