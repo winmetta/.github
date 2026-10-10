@@ -37,6 +37,8 @@ ITERM_PROFILE_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/iterm/winmetta.
 ITERM_PROFILE_DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/winmetta.json"
 # Must match "Guid" in iterm/winmetta.json.
 ITERM_PROFILE_GUID="202DEC0E-11DE-43C2-A8D2-6A2399F97A1B"
+STARSHIP_CONFIG_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/starship/starship.toml"
+STARSHIP_CONFIG_DEST="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
 # "tool:command"; the command is used to warn about non-mise copies on PATH.
 MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
@@ -208,6 +210,19 @@ configure_starship() {
 	log_step "starship prompt"
 	configure_starship_in "${ZDOTDIR:-$HOME}/.zshrc" zsh
 	configure_starship_in "$HOME/.bashrc" bash
+	attempt "install starship config" \
+		"copy .github/starship/starship.toml to '$STARSHIP_CONFIG_DEST'" \
+		install_starship_config
+}
+
+# Copy the shared starship config (ahead/behind counts, no stash indicator)
+# unless one exists, so a config you edited is never overwritten.
+install_starship_config() {
+	if [[ -e "$STARSHIP_CONFIG_DEST" ]]; then
+		log_ok "$STARSHIP_CONFIG_DEST already exists; leaving it alone"
+		return 0
+	fi
+	mkdir -p "$(dirname "$STARSHIP_CONFIG_DEST")" && cp "$STARSHIP_CONFIG_SRC" "$STARSHIP_CONFIG_DEST"
 }
 
 # Download a font zip and copy its .ttf files into ~/Library/Fonts (per user, no
