@@ -10,8 +10,9 @@
 # manager), the CLI tools gh, shellcheck, shfmt, the AI coding agents claude and codex, the
 # starship prompt and the latest Node.js LTS (via mise), and the required
 # VS Code extensions listed in VSCODE_EXTENSIONS below. It also copies the
-# JetBrains Mono Nerd Font and Cascadia Code .ttf files into ~/Library/Fonts (no
-# Homebrew or admin rights needed). It activates mise and
+# JetBrains Mono Nerd Font .ttf files into ~/Library/Fonts (no Homebrew or admin
+# rights needed) and, if iTerm2 is installed, adds the "winmetta" iTerm2 profile
+# (iterm/winmetta.json, which uses that font) and makes it the default. It activates mise and
 # starship in ~/.zshrc (the macOS default shell) and ~/.bashrc, and makes ~/.bash_profile
 # load ~/.bashrc, because Terminal.app starts bash as a login shell.
 #
@@ -30,6 +31,11 @@ set -Eeuo pipefail
 
 VSCODE_APP="/Applications/Visual Studio Code.app"
 FONT_DIR="$HOME/Library/Fonts"
+ITERM_APP="/Applications/iTerm.app"
+ITERM_PROFILE_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/iterm/winmetta.json"
+ITERM_PROFILE_DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/winmetta.json"
+# Must match "Guid" in iterm/winmetta.json.
+ITERM_PROFILE_GUID="202DEC0E-11DE-43C2-A8D2-6A2399F97A1B"
 # "tool:command"; the command is what we look for on PATH to skip installs.
 MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
@@ -233,33 +239,37 @@ install_font_zip() {
 	log_info "copied $count font file(s) to $FONT_DIR"
 }
 
-# Print the download URL of the latest Cascadia Code release zip. The asset name
-# contains the version, so resolve the latest tag from the redirect (no API, no rate limit).
-cascadia_zip_url() {
-	local final tag
-	final="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/microsoft/cascadia-code/releases/latest)" || return 1
-	tag="${final##*/}"
-	[[ "$tag" == v* ]] || return 1
-	echo "https://github.com/microsoft/cascadia-code/releases/download/$tag/CascadiaCode-${tag#v}.zip"
-}
-
 install_fonts() {
-	log_step "Fonts (JetBrains Mono Nerd Font, Cascadia Code)"
-	local url
+	log_step "Font (JetBrains Mono Nerd Font)"
 	attempt "install JetBrains Mono Nerd Font" \
 		"download JetBrainsMono.zip from https://github.com/ryanoasis/nerd-fonts/releases/latest and copy the .ttf files to ~/Library/Fonts" \
 		install_font_zip "JetBrains Mono Nerd Font" \
 		"https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" \
 		'JetBrainsMonoNerdFont*.ttf'
-	if url="$(cascadia_zip_url)"; then
-		attempt "install Cascadia Code" \
-			"download CascadiaCode-<version>.zip from https://github.com/microsoft/cascadia-code/releases/latest and copy the .ttf files to ~/Library/Fonts" \
-			install_font_zip "Cascadia Code" "$url" 'CascadiaCode*.ttf'
-	else
-		record_failure "install Cascadia Code (could not find the latest release)" \
-			"download CascadiaCode-<version>.zip from https://github.com/microsoft/cascadia-code/releases/latest and copy the .ttf files to ~/Library/Fonts"
+}
+
+# Install the "winmetta" iTerm2 profile as a Dynamic Profile (iTerm2 loads it
+# without restarting) and make it the default profile. iTerm2 may rewrite its
+# preferences when it quits, so quit it before running this to be safe.
+configure_iterm() {
+	log_step "iTerm2 profile (winmetta)"
+	if [[ ! -d "$ITERM_APP" ]]; then
+		log_info "iTerm2 is not installed ($ITERM_APP); skipping. Install it, then re-run this script."
+		return
 	fi
-	log_info "Set your terminal font to 'JetBrainsMono Nerd Font' (starship icons) or 'Cascadia Code'."
+	attempt "install iTerm2 profile" \
+		"copy .github/iterm/winmetta.json to '$ITERM_PROFILE_DEST'" \
+		install_iterm_profile
+	attempt "set winmetta as the default iTerm2 profile" \
+		"iTerm2 > Settings > Profiles > winmetta > Other Actions > Set as Default" \
+		defaults write com.googlecode.iterm2 "Default Bookmark Guid" -string "$ITERM_PROFILE_GUID"
+	if pgrep -x iTerm2 >/dev/null 2>&1; then
+		NOTES+=("iTerm2 is running: if winmetta is not the default for new windows, quit iTerm2 (Cmd+Q) and reopen it, or re-run this script with iTerm2 closed.")
+	fi
+}
+
+install_iterm_profile() {
+	mkdir -p "$(dirname "$ITERM_PROFILE_DEST")" && cp "$ITERM_PROFILE_SRC" "$ITERM_PROFILE_DEST"
 }
 
 # True if the tool's command is already on PATH (e.g. installed without mise).
@@ -355,6 +365,7 @@ main() {
 	install_cli_tools
 	configure_starship
 	install_fonts
+	configure_iterm
 	note_manual_apps
 	install_vscode_extensions
 	print_summary || exit 1
