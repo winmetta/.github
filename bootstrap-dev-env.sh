@@ -30,14 +30,15 @@
 set -Eeuo pipefail
 
 VSCODE_APP="/Applications/Visual Studio Code.app"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FONT_DIR="$HOME/Library/Fonts"
 ITERM_APPS=("/Applications/iTerm.app" "$HOME/Applications/iTerm.app")
 ITERM_ZIP_URL="https://iterm2.com/downloads/stable/latest"
-ITERM_PROFILE_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/iterm/winmetta.json"
+ITERM_PROFILE_SRC="$SCRIPT_DIR/iterm/winmetta.json"
 ITERM_PROFILE_DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/winmetta.json"
 # Must match "Guid" in iterm/winmetta.json.
 ITERM_PROFILE_GUID="202DEC0E-11DE-43C2-A8D2-6A2399F97A1B"
-STARSHIP_CONFIG_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/starship/starship.toml"
+STARSHIP_CONFIG_SRC="$SCRIPT_DIR/starship/starship.toml"
 STARSHIP_CONFIG_DEST="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
 # "tool:command"; the command is used to warn about non-mise copies on PATH.
 MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node)
@@ -249,6 +250,93 @@ install_starship_config() {
 	esac
 }
 
+# Run gh from PATH, or through mise when this shell has not activated mise yet.
+run_gh() {
+	local mise_bin
+	if command -v gh >/dev/null 2>&1; then
+		gh "$@"
+	elif mise_bin="$(find_mise)"; then
+		"$mise_bin" exec gh -- gh "$@"
+	else
+		return 1
+	fi
+}
+
+# Suggest an author from the signed-in GitHub account (needs `gh auth login`):
+# "<name or login>" and the private "<id>+<login>@users.noreply.github.com"
+# address, which GitHub links to the account without exposing a real email.
+# Prints "name|email", or nothing when gh is missing or not signed in.
+github_identity() {
+	local id login name
+	id="$(run_gh api user --jq .id 2>/dev/null)" || return 0
+	login="$(run_gh api user --jq .login 2>/dev/null)" || return 0
+	name="$(run_gh api user --jq '.name // empty' 2>/dev/null)" || name=""
+	[[ -n "$id" && -n "$login" ]] || return 0
+	echo "${name:-$login}|$id+$login@users.noreply.github.com"
+}
+
+# When gh is installed but not signed in, offer to run `gh auth login` now.
+# Returns 0 only if gh is signed in afterwards.
+offer_gh_login() {
+	local answer
+	run_gh --version >/dev/null 2>&1 || return 1
+	run_gh auth status >/dev/null 2>&1 && return 0
+	read -r -p "    gh is not signed in to GitHub. Sign in now to use your GitHub name and email? [Y/n] " answer || answer=n
+	case "$answer" in
+	[nN]*) return 1 ;;
+	esac
+	run_gh auth login && run_gh auth status >/dev/null 2>&1
+}
+
+# Make sure git has a commit author. Without user.name/user.email git guesses
+# them from the OS user and hostname (e.g. "alo <alo@mac.local>"), which ends up
+# in every commit. Missing values are saved globally (all repos), suggesting the
+# GitHub account's name and noreply email (offering to run `gh auth login` first
+# if gh is not signed in); press Enter to
+# accept the suggestion or type another value. Values already set (globally or
+# in the repo) are left alone.
+configure_git_identity() {
+	log_step "git identity (user.name, user.email)"
+	local key value suggestion label gh_identity=""
+	local missing=0
+	for key in name email; do
+		if [[ -z "$(git -C "$SCRIPT_DIR" config --get "user.$key" 2>/dev/null || true)" ]]; then
+			missing=1
+		fi
+	done
+	if ((missing)); then
+		gh_identity="$(github_identity)"
+		if [[ -z "$gh_identity" && -t 0 ]]; then
+			offer_gh_login && gh_identity="$(github_identity)"
+		fi
+	fi
+	for key in name email; do
+		value="$(git -C "$SCRIPT_DIR" config --get "user.$key" 2>/dev/null || true)"
+		if [[ -n "$value" ]]; then
+			log_ok "user.$key = $value"
+			continue
+		fi
+		if [[ "$key" == name ]]; then
+			suggestion="${gh_identity%%|*}" label="your full name"
+		else
+			suggestion="${gh_identity#*|}" label="your email"
+		fi
+		[[ -n "$gh_identity" ]] || suggestion=""
+		if [[ -t 0 ]]; then
+			read -r -p "    git user.$key is not set. Enter $label${suggestion:+ [$suggestion]} (blank to skip): " value || value=""
+			value="${value:-$suggestion}"
+		else
+			value=""
+		fi
+		if [[ -n "$value" ]]; then
+			attempt "set git user.$key" "git config --global user.$key '<value>'" \
+				git config --global "user.$key" "$value"
+		else
+			NOTES+=("git user.$key is not set: run git config --global user.$key '<value>' (after gh auth login, re-running this script suggests your GitHub name and noreply email). Until then git guesses it from your OS user and hostname.")
+		fi
+	done
+}
+
 # Download a font zip and copy its .ttf files into ~/Library/Fonts (per user, no
 # admin rights). Skips static/ instances to avoid duplicate families. Skipped when
 # a file matching the glob "$3" is already installed.
@@ -448,6 +536,7 @@ main() {
 	install_command_line_tools
 	install_mise
 	install_cli_tools
+	configure_git_identity
 	configure_starship
 	install_fonts
 	configure_iterm
