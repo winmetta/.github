@@ -19,3 +19,17 @@ symbol = "✓"
 format = "[$symbol]($style) "
 style = "bold green"
 shell = ["bash", "--noprofile", "--norc"]
+
+# Plain "$" instead of the default "❯" (green, or red after a failed command).
+# "\$" escapes starship's variable sigil; single quotes keep the backslash.
+[character]
+success_symbol = '[\$](bold green)'
+error_symbol = '[\$](bold red)'
+
+# Current time (24-hour, when the prompt was drawn), just before the "$".
+# Off by default: uncomment these lines to turn it on.
+# [time]
+# disabled = false
+# time_format = "%H:%M:%S"
+# format = "[$time]($style) "
+# style = "dimmed white"
