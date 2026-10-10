@@ -215,14 +215,38 @@ configure_starship() {
 		install_starship_config
 }
 
-# Copy the shared starship config (ahead/behind counts, no stash indicator)
-# unless one exists, so a config you edited is never overwritten.
+# Keep ~/.config/starship.toml in step with the shared config. Missing: copy it.
+# Identical: nothing to do. Different: show the diff and ask before replacing it
+# (the old file is backed up first, only in this case). Non-interactive runs
+# never replace it and leave a note instead.
 install_starship_config() {
-	if [[ -e "$STARSHIP_CONFIG_DEST" ]]; then
-		log_ok "$STARSHIP_CONFIG_DEST already exists; leaving it alone"
-		return 0
+	local answer backup
+	if [[ ! -e "$STARSHIP_CONFIG_DEST" ]]; then
+		mkdir -p "$(dirname "$STARSHIP_CONFIG_DEST")" && cp "$STARSHIP_CONFIG_SRC" "$STARSHIP_CONFIG_DEST"
+		log_info "copied the shared config to $STARSHIP_CONFIG_DEST"
+		return
 	fi
-	mkdir -p "$(dirname "$STARSHIP_CONFIG_DEST")" && cp "$STARSHIP_CONFIG_SRC" "$STARSHIP_CONFIG_DEST"
+	if cmp -s "$STARSHIP_CONFIG_SRC" "$STARSHIP_CONFIG_DEST"; then
+		log_ok "$STARSHIP_CONFIG_DEST is up to date"
+		return
+	fi
+	log_info "$STARSHIP_CONFIG_DEST differs from the shared config (- yours, + shared):"
+	diff -u "$STARSHIP_CONFIG_DEST" "$STARSHIP_CONFIG_SRC" | sed 's/^/      /' || true
+	if [[ -t 0 ]]; then
+		read -r -p "    Replace it with the shared config? Yours is backed up first. [y/N] " answer || answer=""
+	else
+		answer=""
+	fi
+	case "$answer" in
+	[yY] | [yY][eE][sS])
+		backup="$STARSHIP_CONFIG_DEST.bak-$(date +%Y%m%d-%H%M%S)"
+		cp "$STARSHIP_CONFIG_DEST" "$backup" && cp "$STARSHIP_CONFIG_SRC" "$STARSHIP_CONFIG_DEST"
+		log_info "backed up your config to $backup and installed the shared one"
+		;;
+	*)
+		NOTES+=("$STARSHIP_CONFIG_DEST was left as is and differs from the shared config. To update it: cp '$STARSHIP_CONFIG_SRC' '$STARSHIP_CONFIG_DEST' (back up yours first).")
+		;;
+	esac
 }
 
 # Download a font zip and copy its .ttf files into ~/Library/Fonts (per user, no
