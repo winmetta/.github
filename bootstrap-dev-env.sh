@@ -8,7 +8,7 @@
 # Installs the tools shared by every Win Metta repo: Xcode Command Line Tools
 # (which provides git, curl and the compiler), mise (the tool and version
 # manager), the CLI tools gh, shellcheck, shfmt, the AI coding agents claude and codex, the
-# starship prompt, the latest Node.js LTS and the latest stable Python 3 (via mise), and the required
+# starship prompt, the latest Node.js LTS and the latest stable Python 3 and vim (via mise), and the required
 # VS Code extensions listed in VSCODE_EXTENSIONS below. It also copies the
 # JetBrains Mono Nerd Font .ttf files into ~/Library/Fonts (no Homebrew or admin
 # rights needed) and installs iTerm2 (into ~/Applications) with the "winmetta" iTerm2 profile
@@ -16,7 +16,10 @@
 # starship in ~/.zshrc (the macOS default shell) and ~/.bashrc, and makes ~/.bash_profile
 # load ~/.bashrc, because Terminal.app starts bash as a login shell. It also sets the
 # git author (suggested from your GitHub account), installs shared git settings and
-# aliases (git/winmetta.gitconfig) and installs `explain-*` shell helpers (run `explain` to list them).
+# aliases (git/winmetta.gitconfig) and installs `explain-*` shell helpers (run `explain` to list them). It sets up vim with a shared vimrc
+# (vim/.vimrc) and the plugins in VIM_PLUGINS. Zed is downloaded into ~/Applications
+# if missing, its `zed` command is linked into ~/.local/bin and git's editor is set to
+# Zed or vim (asked once).
 #
 # VS Code and Antigravity CLI have no mise package and are installed by hand; see
 # the README. Only the steps everything else depends on (platform
@@ -42,13 +45,26 @@ ITERM_PROFILE_DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/win
 ITERM_PROFILE_GUID="202DEC0E-11DE-43C2-A8D2-6A2399F97A1B"
 EXPLAIN_SRC="$SCRIPT_DIR/shell/explain.sh"
 EXPLAIN_DEST="$HOME/.config/winmetta/explain.sh"
+ZED_APPS=("/Applications/Zed.app" "$HOME/Applications/Zed.app")
+VIMRC_SRC="$SCRIPT_DIR/vim/.vimrc"
+VIMRC_DEST="$HOME/.config/winmetta/vimrc"
+VIM_PACK_DIR="$HOME/.vim/pack/winmetta/start"
+# "owner/repo" of vim plugins loaded at startup (vim 8+ native packages, no plugin manager).
+VIM_PLUGINS=(
+	tpope/vim-endwise
+	tpope/vim-repeat
+	tpope/vim-surround
+	tpope/vim-unimpaired
+	tpope/vim-commentary
+	github/copilot.vim
+)
 GIT_CONFIG_SRC="$SCRIPT_DIR/git/winmetta.gitconfig"
 GIT_CONFIG_DEST="$HOME/.config/git/winmetta.gitconfig"
 GIT_GLOBAL_CONFIG="${GIT_CONFIG_GLOBAL:-$HOME/.gitconfig}"
 STARSHIP_CONFIG_SRC="$SCRIPT_DIR/starship/starship.toml"
 STARSHIP_CONFIG_DEST="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
 # "tool:command"; the command is used to warn about non-mise copies on PATH.
-MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3)
+MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3 vim:vim)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
 VSCODE_EXTENSIONS=(
 	dbaeumer.vscode-eslint
@@ -405,6 +421,154 @@ configure_explain() {
 	log_info "Run 'explain' in a new terminal to list them."
 }
 
+# Path of an installed Zed.app (system-wide or in ~/Applications), if any.
+find_zed_app() {
+	local app
+	for app in "${ZED_APPS[@]}"; do
+		if [[ -d "$app" ]]; then
+			echo "$app"
+			return 0
+		fi
+	done
+	return 1
+}
+
+# Download the latest stable Zed (the same dmg Zed's own install.sh uses) and copy
+# Zed.app into ~/Applications (no admin rights needed). The dmg is always unmounted.
+install_zed_app() {
+	local arch tmp mount="" ok=1
+	case "$(uname -m)" in
+	arm64) arch=aarch64 ;;
+	x86_64) arch=x86_64 ;;
+	*) return 1 ;;
+	esac
+	tmp="$(mktemp -d)" || return 1
+	if curl -fsSL -o "$tmp/Zed.dmg" "https://cloud.zed.dev/releases/stable/latest/download?asset=zed&os=macos&arch=$arch&source=install.sh" &&
+		hdiutil attach -quiet -nobrowse -readonly -mountpoint "$tmp/mount" "$tmp/Zed.dmg" >/dev/null; then
+		mount="$tmp/mount"
+		mkdir -p "$HOME/Applications" && ditto "$mount/Zed.app" "$HOME/Applications/Zed.app" && ok=0
+	fi
+	[[ -n "$mount" ]] && hdiutil detach -quiet "$mount" >/dev/null 2>&1
+	rm -rf "${tmp:?}"
+	return $ok
+}
+
+# Link Zed's command-line tool as ~/.local/bin/zed (already on PATH via mise's installer).
+link_zed_cli() {
+	local app
+	app="$(find_zed_app)" || return 1
+	mkdir -p "$HOME/.local/bin" && ln -sf "$app/Contents/MacOS/cli" "$HOME/.local/bin/zed"
+}
+
+configure_zed() {
+	log_step "Zed editor"
+	if find_zed_app >/dev/null; then
+		log_ok "Zed already installed at $(find_zed_app)"
+	else
+		log_info "downloading Zed (about 150 MB)"
+		attempt "install Zed" \
+			"download Zed from https://zed.dev/download and move Zed.app to ~/Applications" \
+			install_zed_app
+		find_zed_app >/dev/null || return 0
+	fi
+	attempt "link the zed command" \
+		"ln -sf <path to Zed.app>/Contents/MacOS/cli ~/.local/bin/zed" \
+		link_zed_cli
+}
+
+# Choose the editor git opens for commit messages and interactive rebases: Zed
+# (`zed --wait`, so git waits for you to close the tab) or vim. Asked once and
+# saved globally in ~/.gitconfig; an editor you already set is left alone.
+# Without a terminal, Zed is used if installed, else git's own default stays.
+configure_git_editor() {
+	log_step "git editor (Zed or vim)"
+	local current default choice="" answer=""
+	current="$(git config --file "$GIT_GLOBAL_CONFIG" --get core.editor 2>/dev/null || true)"
+	if [[ -n "$current" ]]; then
+		log_ok "core.editor = $current (already set; change it with: git config --global core.editor vim)"
+		return
+	fi
+	if command -v zed >/dev/null 2>&1 || [[ -x "$HOME/.local/bin/zed" ]] || find_zed_app >/dev/null; then
+		default=zed
+	else
+		default=vim
+	fi
+	if [[ -t 0 ]]; then
+		read -r -p "    Editor for git commit messages: [z]ed or [v]im? [${default:0:1}] " answer || answer=""
+		case "$answer" in
+		[zZ]*) choice=zed ;;
+		[vV]*) choice=vim ;;
+		*) choice="$default" ;;
+		esac
+	elif [[ "$default" == zed ]]; then
+		choice=zed
+	fi
+	case "$choice" in
+	zed) attempt "set git editor to Zed" "git config --global core.editor 'zed --wait'" git config --global core.editor "zed --wait" ;;
+	vim) attempt "set git editor to vim" "git config --global core.editor vim" git config --global core.editor vim ;;
+	*) NOTES+=("git core.editor is not set: choose with git config --global core.editor 'zed --wait' (or vim).") ;;
+	esac
+}
+
+# Run vim from mise when it has one, else whatever vim is on PATH.
+run_vim() {
+	local mise_bin
+	if mise_bin="$(find_mise)" && mise_has "$mise_bin" vim; then
+		"$mise_bin" exec vim -- vim "$@"
+	else
+		vim "$@"
+	fi
+}
+
+# Clone a plugin into the package dir, or fast-forward it if already there, then
+# build its help tags.
+install_vim_plugin() {
+	local repo="$1" dir
+	dir="$VIM_PACK_DIR/${repo#*/}"
+	if [[ -d "$dir/.git" ]]; then
+		git -C "$dir" pull --ff-only --quiet || return 1
+	else
+		mkdir -p "$VIM_PACK_DIR" && git clone --depth 1 --quiet "https://github.com/$repo.git" "$dir" || return 1
+	fi
+	if [[ -d "$dir/doc" ]]; then
+		run_vim -u NONE -es -c "helptags $dir/doc" -c q || true
+	fi
+}
+
+# Copy the shared vimrc to ~/.config/winmetta/vimrc (replaced every run) and
+# source it from the TOP of ~/.vimrc, so your own settings below it win.
+install_vimrc() {
+	local rc="$HOME/.vimrc" line tmp
+	line="source $VIMRC_DEST"
+	mkdir -p "$(dirname "$VIMRC_DEST")" && cp "$VIMRC_SRC" "$VIMRC_DEST" || return 1
+	if grep -qxF "$line" "$rc" 2>/dev/null; then
+		log_info "$rc already sources it"
+		return 0
+	fi
+	tmp="$(mktemp)" || return 1
+	{
+		printf '%s\n\n' "$line"
+		cat "$rc" 2>/dev/null || true
+	} >"$tmp" && cat "$tmp" >"$rc"
+	local status=$?
+	rm -f "$tmp"
+	return $status
+}
+
+configure_vim() {
+	log_step "vim config and plugins"
+	local repo
+	attempt "install vimrc" \
+		"copy .github/vim/.vimrc to '$VIMRC_DEST' and add 'source $VIMRC_DEST' at the top of ~/.vimrc" \
+		install_vimrc
+	for repo in "${VIM_PLUGINS[@]}"; do
+		attempt "vim plugin $repo" \
+			"git clone https://github.com/$repo.git '$VIM_PACK_DIR/${repo#*/}'" \
+			install_vim_plugin "$repo"
+	done
+	NOTES+=("GitHub Copilot for vim needs a sign-in and a Copilot subscription: open vim and run :Copilot setup. Remove ~/.vim/pack/winmetta/start/copilot.vim to opt out.")
+}
+
 # Download a font zip and copy its .ttf files into ~/Library/Fonts (per user, no
 # admin rights). Skips static/ instances to avoid duplicate families. Skipped when
 # a file matching the glob "$3" is already installed.
@@ -539,7 +703,7 @@ warn_if_not_mise() {
 }
 
 install_cli_tools() {
-	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python)"
+	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python, vim)"
 	mise_install_all "${MISE_TOOLS[@]}"
 }
 
@@ -610,8 +774,11 @@ main() {
 	configure_git
 	configure_starship
 	configure_explain
+	configure_vim
 	install_fonts
 	configure_iterm
+	configure_zed
+	configure_git_editor
 	note_manual_apps
 	install_vscode_extensions
 	print_summary || exit 1
