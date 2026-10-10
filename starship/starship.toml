@@ -9,3 +9,13 @@ behind = "⇣${count}"
 diverged = "⇕⇡${ahead_count}⇣${behind_count}"
 # Hide the stash indicator.
 stashed = ""
+
+# Green check when the repo is clean (no changes) and level with its upstream.
+# One `git status` call: with --branch it prints "# branch.ab +0 -0" only when an
+# upstream is set, and any other non-header line means local changes.
+[custom.git_synced]
+when = '[ "$(git status --porcelain=v2 --branch 2>/dev/null | grep -v "^# branch\.\(oid\|head\|upstream\)")" = "# branch.ab +0 -0" ]'
+symbol = "✓"
+format = "[$symbol]($style) "
+style = "bold green"
+shell = ["bash", "--noprofile", "--norc"]
