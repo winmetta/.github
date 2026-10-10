@@ -18,6 +18,9 @@
     "[shellscript]": {
       "editor.defaultFormatter": "mkhl.shfmt",
     },
+    "[markdown]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
     "[javascript]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
@@ -88,6 +91,20 @@
         "label": "Lint shell scripts (shellcheck + shfmt)",
         "type": "shell",
         "command": "shellcheck .github/*.sh winmetta-platform/scripts/*.sh && shfmt -d .github/*.sh winmetta-platform/scripts/*.sh",
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "shared" },
+      },
+      {
+        "label": "Check Markdown (markdownlint + prettier)",
+        "type": "shell",
+        "command": "markdownlint-cli2 '.github/*.md' && prettier --check '.github/*.md'",
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "shared" },
+      },
+      {
+        "label": "Fix and format Markdown (markdownlint --fix + prettier)",
+        "type": "shell",
+        "command": "markdownlint-cli2 --fix '.github/*.md'; prettier --write '.github/*.md'",
         "problemMatcher": [],
         "presentation": { "reveal": "always", "panel": "shared" },
       },

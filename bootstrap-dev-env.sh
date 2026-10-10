@@ -8,7 +8,9 @@
 # Installs the tools shared by every Win Metta repo: Xcode Command Line Tools
 # (which provides git, curl and the compiler), mise (the tool and version
 # manager), the CLI tools gh, shellcheck, shfmt, the AI coding agents claude and codex, the
-# starship prompt, the latest Node.js LTS and the latest stable Python 3 and vim (via mise), and the required
+# starship prompt, the latest Node.js LTS and the latest stable Python 3, vim, a modern bash, wget and the search/navigation tools
+# ripgrep, fd, sd, bat, fzf and zoxide, and the Markdown checker and formatter
+# markdownlint-cli2 and prettier, and lefthook with gitleaks for git hooks (via mise), and the required
 # VS Code extensions listed in VSCODE_EXTENSIONS below. It also copies the
 # JetBrains Mono Nerd Font .ttf files into ~/Library/Fonts (no Homebrew or admin
 # rights needed) and installs iTerm2 (into ~/Applications) with the "winmetta" iTerm2 profile
@@ -43,6 +45,8 @@ ITERM_PROFILE_SRC="$SCRIPT_DIR/iterm/winmetta.json"
 ITERM_PROFILE_DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/winmetta.json"
 # Must match "Guid" in iterm/winmetta.json.
 ITERM_PROFILE_GUID="202DEC0E-11DE-43C2-A8D2-6A2399F97A1B"
+FZF_SH_SRC="$SCRIPT_DIR/shell/fzf.sh"
+FZF_SH_DEST="$HOME/.config/winmetta/fzf.sh"
 EXPLAIN_SRC="$SCRIPT_DIR/shell/explain.sh"
 EXPLAIN_DEST="$HOME/.config/winmetta/explain.sh"
 ZED_APPS=("/Applications/Zed.app" "$HOME/Applications/Zed.app")
@@ -63,8 +67,9 @@ GIT_CONFIG_DEST="$HOME/.config/git/winmetta.gitconfig"
 GIT_GLOBAL_CONFIG="${GIT_CONFIG_GLOBAL:-$HOME/.gitconfig}"
 STARSHIP_CONFIG_SRC="$SCRIPT_DIR/starship/starship.toml"
 STARSHIP_CONFIG_DEST="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
-# "tool:command"; the command is used to warn about non-mise copies on PATH.
-MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3 vim:vim)
+# "tool:command" (the command is the part after the LAST colon, so tools like
+# conda:bash work); the command is used to warn about non-mise copies on PATH.
+MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3 vim:vim conda:bash:bash conda:wget:wget ripgrep:rg fd:fd sd:sd bat:bat fzf:fzf zoxide:zoxide npm:markdownlint-cli2:markdownlint-cli2 npm:prettier:prettier lefthook:lefthook gitleaks:gitleaks)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
 VSCODE_EXTENSIONS=(
 	dbaeumer.vscode-eslint
@@ -510,6 +515,31 @@ configure_git_editor() {
 	esac
 }
 
+# Install the git hooks from lefthook.yml into this repo's .git/hooks (pre-commit
+# checks and the Conventional Commits message check). Safe to re-run; lefthook
+# backs up any hook it did not create.
+install_git_hooks() {
+	local mise_bin
+	if command -v lefthook >/dev/null 2>&1; then
+		(cd "$SCRIPT_DIR" && lefthook install)
+	elif mise_bin="$(find_mise)"; then
+		(cd "$SCRIPT_DIR" && "$mise_bin" exec lefthook -- lefthook install)
+	else
+		return 1
+	fi
+}
+
+configure_git_hooks() {
+	log_step "git hooks (lefthook)"
+	if [[ ! -f "$SCRIPT_DIR/lefthook.yml" ]]; then
+		log_info "no lefthook.yml next to this script; skipping"
+		return
+	fi
+	attempt "install git hooks" \
+		"cd .github && lefthook install" \
+		install_git_hooks
+}
+
 # Run vim from mise when it has one, else whatever vim is on PATH.
 run_vim() {
 	local mise_bin
@@ -567,6 +597,48 @@ configure_vim() {
 			install_vim_plugin "$repo"
 	done
 	NOTES+=("GitHub Copilot for vim needs a sign-in and a Copilot subscription: open vim and run :Copilot setup. Remove ~/.vim/pack/winmetta/start/copilot.vim to opt out.")
+}
+
+# Turn on zoxide (smarter cd: `z <folder>`) and fzf (Ctrl-R history, Ctrl-T files,
+# Alt-C folders) in a startup file. Each line is guarded by `command -v` and
+# silences errors (a mise shim for a tool with no version set would otherwise
+# print one in every new terminal), and is added only once.
+configure_shell_tools_in() {
+	local rc="$1" shell_name="$2" line
+	if grep -q 'zoxide init' "$rc" 2>/dev/null; then
+		log_ok "zoxide already set up in $rc"
+	else
+		line="command -v zoxide >/dev/null 2>&1 && eval \"\$(zoxide init $shell_name 2>/dev/null)\""
+		printf '%s\n' "$line" >>"$rc"
+		log_ok "set up zoxide in $rc"
+	fi
+	if grep -q 'fzf --' "$rc" 2>/dev/null; then
+		log_ok "fzf already set up in $rc"
+	else
+		line="command -v fzf >/dev/null 2>&1 && eval \"\$(fzf --$shell_name 2>/dev/null)\""
+		printf '%s\n' "$line" >>"$rc"
+		log_ok "set up fzf in $rc"
+	fi
+	if grep -qF "$FZF_SH_DEST" "$rc" 2>/dev/null; then
+		log_ok "fzf options already sourced in $rc"
+	else
+		printf '%s\n' "[ -f \"$FZF_SH_DEST\" ] && . \"$FZF_SH_DEST\"" >>"$rc"
+		log_ok "sourced the fzf options in $rc"
+	fi
+}
+
+# The fzf options and shell history settings are ours: replaced on every run.
+install_fzf_options() {
+	mkdir -p "$(dirname "$FZF_SH_DEST")" && cp "$FZF_SH_SRC" "$FZF_SH_DEST"
+}
+
+configure_shell_tools() {
+	log_step "shell integration (zoxide, fzf)"
+	attempt "install fzf options and history settings" \
+		"copy .github/shell/fzf.sh to '$FZF_SH_DEST'" \
+		install_fzf_options
+	configure_shell_tools_in "${ZDOTDIR:-$HOME}/.zshrc" zsh
+	configure_shell_tools_in "$HOME/.bashrc" bash
 }
 
 # Download a font zip and copy its .ttf files into ~/Library/Fonts (per user, no
@@ -679,7 +751,7 @@ mise_install_all() {
 		return
 	}
 	for entry in "$@"; do
-		tool="${entry%%:*}" cmd="${entry#*:}"
+		tool="${entry%:*}" cmd="${entry##*:}"
 		if mise_has "$mise_bin" "$tool"; then
 			log_ok "$tool already installed with mise"
 		else
@@ -696,14 +768,14 @@ warn_if_not_mise() {
 	path="$(command -v "$1" 2>/dev/null)" || return 0
 	case "$path" in
 	"$HOME"/.local/share/mise/*) ;;
-	# macOS ships /usr/bin/python3 and friends: not removable, and mise's copy wins once mise is activated.
-	/usr/bin/*) ;;
+	# macOS ships /usr/bin/python3, /bin/bash and friends: not removable, and mise's copy wins once mise is activated.
+	/usr/bin/* | /bin/*) ;;
 	*) NOTES+=("'$1' resolves to $path, not mise. Remove that copy (e.g. brew uninstall $1) so the mise one is used.") ;;
 	esac
 }
 
 install_cli_tools() {
-	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python, vim)"
+	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python, vim, bash, wget, rg, fd, sd, bat, fzf, zoxide, markdownlint, prettier, lefthook, gitleaks)"
 	mise_install_all "${MISE_TOOLS[@]}"
 }
 
@@ -773,12 +845,14 @@ main() {
 	configure_git_identity
 	configure_git
 	configure_starship
+	configure_shell_tools
 	configure_explain
 	configure_vim
 	install_fonts
 	configure_iterm
 	configure_zed
 	configure_git_editor
+	configure_git_hooks
 	note_manual_apps
 	install_vscode_extensions
 	print_summary || exit 1

@@ -1,0 +1,50 @@
+# Git hooks for this repo, run by lefthook (https://lefthook.dev). The bootstrap
+# script runs `lefthook install` here; to do it by hand: lefthook install
+# The hooks use the tools the bootstrap installs with mise (shellcheck, shfmt,
+# markdownlint-cli2, prettier, gitleaks), so run git from a terminal where mise is
+# active. Skip them once with: git commit --no-verify (CI should run the same checks).
+
+pre-commit:
+  parallel: true
+  commands:
+    shellcheck:
+      glob: "*.sh"
+      run: shellcheck -s bash {staged_files}
+    shfmt:
+      glob: "*.sh"
+      run: shfmt -d {staged_files}
+    markdownlint:
+      glob: "*.md"
+      run: markdownlint-cli2 {staged_files}
+    prettier:
+      glob: "*.md"
+      # CLAUDE.md is a symlink to AGENTS.md and prettier refuses symlinks.
+      exclude: "CLAUDE.md"
+      run: prettier --check {staged_files}
+    # The iTerm profile must stay valid JSON, or iTerm silently ignores it.
+    json:
+      glob: "iterm/*.json"
+      run: python3 -c 'import json, sys; [json.load(open(f)) for f in sys.argv[1:]]' {staged_files}
+    # Block commits that contain secrets (tokens, keys, passwords).
+    gitleaks:
+      run: gitleaks git --staged --redact
+
+# Commit messages follow Conventional Commits (see AGENTS.md):
+#   <type>(<optional scope>): <description>
+commit-msg:
+  skip:
+    - merge
+    - rebase
+  commands:
+    conventional-commits:
+      run: |
+        subject="$(head -n 1 {1})"
+        case "$subject" in
+          "Merge "* | "Revert "* | "fixup! "* | "squash! "*) exit 0 ;;
+        esac
+        if ! printf '%s\n' "$subject" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: [^ ].{0,100}$'; then
+          echo "Commit message must look like: <type>(<optional scope>): <description>" >&2
+          echo "  types: feat fix docs style refactor perf test build ci chore revert" >&2
+          echo "  got:   $subject" >&2
+          exit 1
+        fi
