@@ -1,25 +1,49 @@
 # Win Metta shared git settings and aliases. bootstrap-dev-env.sh copies this to
 # ~/.config/git/winmetta.gitconfig and includes it at the top of ~/.gitconfig,
-# so anything you set later in ~/.gitconfig overrides it. List the aliases with
-# `explain-git-aliases`.
+# so anything you set later in ~/.gitconfig (or in a repo) overrides it.
+# A line starting with "#:" directly above a setting or alias is its description:
+# `explain-git-config` and `explain-git-aliases` print them. Other "#" lines are
+# plain comments.
 
 [init]
+	#: name of the first branch in a new repo (git still defaults to "master")
 	defaultBranch = main
 
+[core]
+	#: line endings: convert CRLF to LF when committing, leave files untouched on checkout (right for macOS; matches the shared .editorconfig)
+	autocrlf = input
+
 [pull]
-	# Rebase instead of creating merge commits.
+	#: git pull rebases your local commits onto the remote ones instead of creating a merge commit
 	rebase = true
 
 [push]
-	# `git push` on a new branch creates the upstream automatically.
+	#: the first plain `git push` of a new branch creates the remote branch and sets it as upstream (no -u needed)
 	autoSetupRemote = true
 
 [fetch]
-	# Drop remote-tracking branches that were deleted on the remote.
+	#: git fetch and pull drop remote-tracking branches that were deleted on the remote
 	prune = true
 
 [rebase]
+	#: stash uncommitted changes before a rebase and restore them afterwards, so rebasing never refuses on a dirty tree
 	autoStash = true
+
+[rerere]
+	#: "reuse recorded resolution": git remembers how you resolved a conflict and applies the same fix if it comes up again (helps with repeated rebases)
+	enabled = true
+
+[merge]
+	#: conflict markers also show the original version (common ancestor) between yours and theirs, which makes conflicts easier to resolve
+	conflictStyle = zdiff3
+
+[diff]
+	#: use the histogram algorithm, which gives cleaner, more readable diffs than the default in most cases
+	algorithm = histogram
+
+[branch]
+	#: git branch lists the most recently committed-to branches first instead of alphabetically
+	sort = -committerdate
 
 [alias]
 	# A line starting with "#:" directly above an alias is its description, shown
@@ -52,8 +76,8 @@
 	# --- History ---
 	#: show the last commit with the files it changed
 	last = log -1 --stat
-	#: compact log, one line per commit: hash, date, subject, author and branch labels (like git log, shorter)
-	ls = "log --pretty=tformat:'%C(yellow)%h%C(reset) %C(green)%ad%C(reset) %s %C(blue)[%an]%C(reset)%C(red)%d%C(reset)' --date=short"
+	#: compact log, one line per commit: hash, date, branch labels, subject, relative time and author (like git log, shorter)
+	ls = "log --abbrev-commit --date=short --pretty=tformat:'%C(yellow)%h%C(reset) %C(green)%ad%C(reset)%C(red)%d%C(reset) %s %C(green)(%cr)%C(reset) %C(bold blue)<%an>%C(reset)'"
 	#: detailed log: full commit info (hash, author, date, message) plus the files changed in each commit
 	ll = log --stat --decorate --date=iso
 	#: compact graph of the last 20 commits on this branch

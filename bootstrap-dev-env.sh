@@ -8,7 +8,7 @@
 # Installs the tools shared by every Win Metta repo: Xcode Command Line Tools
 # (which provides git, curl and the compiler), mise (the tool and version
 # manager), the CLI tools gh, shellcheck, shfmt, the AI coding agents claude and codex, the
-# starship prompt and the latest Node.js LTS (via mise), and the required
+# starship prompt, the latest Node.js LTS and the latest stable Python 3 (via mise), and the required
 # VS Code extensions listed in VSCODE_EXTENSIONS below. It also copies the
 # JetBrains Mono Nerd Font .ttf files into ~/Library/Fonts (no Homebrew or admin
 # rights needed) and installs iTerm2 (into ~/Applications) with the "winmetta" iTerm2 profile
@@ -48,7 +48,7 @@ GIT_GLOBAL_CONFIG="${GIT_CONFIG_GLOBAL:-$HOME/.gitconfig}"
 STARSHIP_CONFIG_SRC="$SCRIPT_DIR/starship/starship.toml"
 STARSHIP_CONFIG_DEST="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
 # "tool:command"; the command is used to warn about non-mise copies on PATH.
-MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node)
+MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
 VSCODE_EXTENSIONS=(
 	dbaeumer.vscode-eslint
@@ -532,12 +532,14 @@ warn_if_not_mise() {
 	path="$(command -v "$1" 2>/dev/null)" || return 0
 	case "$path" in
 	"$HOME"/.local/share/mise/*) ;;
+	# macOS ships /usr/bin/python3 and friends: not removable, and mise's copy wins once mise is activated.
+	/usr/bin/*) ;;
 	*) NOTES+=("'$1' resolves to $path, not mise. Remove that copy (e.g. brew uninstall $1) so the mise one is used.") ;;
 	esac
 }
 
 install_cli_tools() {
-	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS)"
+	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python)"
 	mise_install_all "${MISE_TOOLS[@]}"
 }
 

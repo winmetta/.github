@@ -5,7 +5,7 @@
 explain() {
 	cat <<'HELP'
 explain-git-aliases   every git alias with a description and the command it runs
-explain-git-config    the shared git settings (and where each value comes from)
+explain-git-config    each shared git setting with its current value and what it does
 explain-aliases       shell aliases defined in this shell
 explain-command CMD   where CMD comes from (all matches on PATH, and mise's copy)
 explain-path          the directories in PATH, one per line, in lookup order
@@ -34,8 +34,17 @@ explain-git-aliases() {
 }
 
 explain-git-config() {
-	git config --list --show-origin | grep -E 'winmetta.gitconfig' | sed 's/^file:[^[:space:]]*[[:space:]]*//' | sort
-	echo "(overridden by anything set below the [include] in ~/.gitconfig or in a repo)"
+	local file="$HOME/.config/git/winmetta.gitconfig" key desc
+	[ -f "$file" ] || return 0
+	# "section.key<TAB>description" for each "#: description" line above a setting.
+	awk '/^\[[A-Za-z]+\]/ { s = tolower(substr($1, 2, length($1) - 2)); d = ""; next }
+		s == "alias" { next }
+		/^[[:space:]]*#:/ { sub(/^[[:space:]]*#:[[:space:]]*/, ""); d = $0; next }
+		/^[[:space:]]+[A-Za-z0-9_-]+ = / { if (d != "") print s "." $1 "\t" d; d = ""; next }
+		{ d = "" }' "$file" | while IFS="$(printf '\t')" read -r key desc; do
+		printf '%s = %s\n    %s\n\n' "$key" "$(git config --get "$key")" "$desc"
+	done
+	echo "(values shown are what git uses now; anything set below the [include] in ~/.gitconfig or in a repo overrides the shared one)"
 }
 
 explain-aliases() {

@@ -20,6 +20,13 @@ format = "[$symbol]($style) "
 style = "bold green"
 shell = ["bash", "--noprofile", "--norc"]
 
+# Full path (e.g. ~/winmetta/.github) instead of only the repo folder name.
+# truncate_to_repo = false stops cutting the path at the git repo root;
+# truncation_length = 0 stops cutting long paths to a few folders.
+[directory]
+truncate_to_repo = false
+truncation_length = 0
+
 # Plain "$" instead of the default "❯" (green, or red after a failed command).
 # "\$" escapes starship's variable sigil; single quotes keep the backslash.
 [character]
