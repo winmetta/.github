@@ -99,8 +99,9 @@ Run once per machine, from the workspace root:
 1. checks the platform
 2. installs Xcode Command Line Tools (provides `git`, `curl` and the compiler; if it asks you to finish the installer, do that and re-run)
 3. installs [mise](https://mise.jdx.dev/), the tool and version manager, and activates it in `~/.zshrc` (the macOS default shell) and `~/.bashrc`. It also makes `~/.bash_profile` load `~/.bashrc`, because Terminal.app starts bash as a login shell
-4. installs CLI tools with mise: `gh`, `shellcheck`, `shfmt`, the AI coding agents `claude` ([Claude Code](https://claude.com/product/claude-code)) and `codex` ([Codex CLI](https://github.com/openai/codex)), and the latest [Node.js LTS](https://nodejs.org/en/about/previous-releases) as the global default (a repo can pin another version, and its own setup script installs that)
-5. installs the required VS Code extensions (ESLint, Prettier, Astro, ShellCheck, shfmt, EditorConfig, markdownlint, Playwright, Claude Code), hard-coded in the script. The wider optional set stays in [.vscode/extensions.json](.vscode/extensions.json) as recommendations
+4. installs CLI tools with mise: `gh`, `shellcheck`, `shfmt`, the [starship](https://starship.rs/) prompt (set up in `~/.zshrc` and `~/.bashrc`), the AI coding agents `claude` ([Claude Code](https://claude.com/product/claude-code)) and `codex` ([Codex CLI](https://github.com/openai/codex)), and the latest [Node.js LTS](https://nodejs.org/en/about/previous-releases) as the global default (a repo can pin another version, and its own setup script installs that)
+5. downloads and installs two fonts into `~/Library/Fonts` (per user, no Homebrew or admin rights needed): the [JetBrains Mono Nerd Font](https://github.com/ryanoasis/nerd-fonts) for starship's icons and [Cascadia Code](https://github.com/microsoft/cascadia-code). Set your terminal or editor font to one of them afterwards
+6. installs the required VS Code extensions (ESLint, Prettier, Astro, ShellCheck, shfmt, EditorConfig, markdownlint, Playwright, Claude Code), hard-coded in the script. The wider optional set stays in [.vscode/extensions.json](.vscode/extensions.json) as recommendations
 
 The script does **not** install [VS Code](https://code.visualstudio.com/) or [Antigravity CLI](https://antigravity.google/docs/cli/), which have no mise package. Install them by hand, then re-run the script so it can install the VS Code extensions. A fresh machine therefore finishes the first run with a note that the VS Code CLI was not found. That is expected.
 
@@ -132,9 +133,11 @@ Each repo owns its own setup (language runtime, dependencies, browsers), documen
 | Node.js | JavaScript runtime (global default; repos pin their own) | `mise use -g node@lts` |
 | `shellcheck`, `shfmt` | lint and format shell scripts (VS Code extensions `timonwong.shellcheck`, `mkhl.shfmt` call them) | `mise use -g shellcheck shfmt` |
 | VS Code | editor | download from [code.visualstudio.com](https://code.visualstudio.com/) |
+| starship | shell prompt (shows the git branch and status) | `mise use -g starship`, then add `eval "$(starship init zsh)"` to `~/.zshrc` |
 | Claude Code | AI coding agent | `mise use -g claude` |
 | Codex CLI | AI coding agent | `mise use -g codex` |
 | Antigravity CLI | AI coding agent | download from [antigravity.google](https://antigravity.google/docs/cli/) |
+| JetBrains Mono Nerd Font, Cascadia Code | fonts for starship icons and coding | download the zips from the [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts/releases/latest) (`JetBrainsMono.zip`) and [Cascadia Code](https://github.com/microsoft/cascadia-code/releases/latest) releases, unzip, and copy the `.ttf` files into `~/Library/Fonts` |
 | VS Code extensions | required set | `code --install-extension <id>` for each ID in `VSCODE_EXTENSIONS` in `bootstrap-dev-env.sh` |
 
 ### Example: `winmetta-platform`

@@ -7,9 +7,12 @@
 #
 # Installs the tools shared by every Win Metta repo: Xcode Command Line Tools
 # (which provides git, curl and the compiler), mise (the tool and version
-# manager), the CLI tools gh, shellcheck, shfmt, the AI coding agents claude and codex, and the latest Node.js LTS (via mise), and the required
-# VS Code extensions listed in VSCODE_EXTENSIONS below. It activates mise in
-# ~/.zshrc (the macOS default shell) and ~/.bashrc, and makes ~/.bash_profile
+# manager), the CLI tools gh, shellcheck, shfmt, the AI coding agents claude and codex, the
+# starship prompt and the latest Node.js LTS (via mise), and the required
+# VS Code extensions listed in VSCODE_EXTENSIONS below. It also copies the
+# JetBrains Mono Nerd Font and Cascadia Code .ttf files into ~/Library/Fonts (no
+# Homebrew or admin rights needed). It activates mise and
+# starship in ~/.zshrc (the macOS default shell) and ~/.bashrc, and makes ~/.bash_profile
 # load ~/.bashrc, because Terminal.app starts bash as a login shell.
 #
 # VS Code and Antigravity CLI have no mise package and are installed by hand; see
@@ -26,8 +29,9 @@
 set -Eeuo pipefail
 
 VSCODE_APP="/Applications/Visual Studio Code.app"
+FONT_DIR="$HOME/Library/Fonts"
 # "tool:command"; the command is what we look for on PATH to skip installs.
-MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex node@lts:node)
+MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
 VSCODE_EXTENSIONS=(
 	dbaeumer.vscode-eslint
@@ -179,6 +183,85 @@ install_mise() {
 	esac
 }
 
+# Add the starship prompt to a startup file unless it is already set up there.
+# Guarded by `command -v`, so the shell still starts if starship is missing; it
+# must come after mise activation, which puts starship on PATH.
+configure_starship_in() {
+	local rc="$1" shell_name="$2" line
+	line="command -v starship >/dev/null 2>&1 && eval \"\$(starship init $shell_name)\""
+	if grep -q 'starship init' "$rc" 2>/dev/null; then
+		log_ok "starship already set up in $rc"
+	else
+		printf '%s\n' "$line" >>"$rc"
+		log_ok "set up starship in $rc"
+	fi
+}
+
+configure_starship() {
+	log_step "starship prompt"
+	configure_starship_in "${ZDOTDIR:-$HOME}/.zshrc" zsh
+	configure_starship_in "$HOME/.bashrc" bash
+}
+
+# Download a font zip and copy its .ttf files into ~/Library/Fonts (per user, no
+# admin rights). Skips static/ instances to avoid duplicate families. Skipped when
+# a file matching the glob "$3" is already installed.
+install_font_zip() {
+	local label="$1" url="$2" installed_glob="$3" tmp file count=0
+	if compgen -G "$FONT_DIR/$installed_glob" >/dev/null; then
+		log_ok "$label already installed"
+		return 0
+	fi
+	log_info "downloading $label"
+	tmp="$(mktemp -d)" || return 1
+	if ! curl -fsSL -o "$tmp/font.zip" "$url" || ! unzip -q "$tmp/font.zip" -d "$tmp/fonts"; then
+		rm -rf "${tmp:?}"
+		return 1
+	fi
+	mkdir -p "$FONT_DIR"
+	while IFS= read -r -d '' file; do
+		if ! cp "$file" "$FONT_DIR/"; then
+			rm -rf "${tmp:?}"
+			return 1
+		fi
+		count=$((count + 1))
+	done < <(find "$tmp/fonts" -name '*.ttf' -not -path '*/static/*' -print0)
+	rm -rf "${tmp:?}"
+	if ((count == 0)); then
+		return 1
+	fi
+	log_info "copied $count font file(s) to $FONT_DIR"
+}
+
+# Print the download URL of the latest Cascadia Code release zip. The asset name
+# contains the version, so resolve the latest tag from the redirect (no API, no rate limit).
+cascadia_zip_url() {
+	local final tag
+	final="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/microsoft/cascadia-code/releases/latest)" || return 1
+	tag="${final##*/}"
+	[[ "$tag" == v* ]] || return 1
+	echo "https://github.com/microsoft/cascadia-code/releases/download/$tag/CascadiaCode-${tag#v}.zip"
+}
+
+install_fonts() {
+	log_step "Fonts (JetBrains Mono Nerd Font, Cascadia Code)"
+	local url
+	attempt "install JetBrains Mono Nerd Font" \
+		"download JetBrainsMono.zip from https://github.com/ryanoasis/nerd-fonts/releases/latest and copy the .ttf files to ~/Library/Fonts" \
+		install_font_zip "JetBrains Mono Nerd Font" \
+		"https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" \
+		'JetBrainsMonoNerdFont*.ttf'
+	if url="$(cascadia_zip_url)"; then
+		attempt "install Cascadia Code" \
+			"download CascadiaCode-<version>.zip from https://github.com/microsoft/cascadia-code/releases/latest and copy the .ttf files to ~/Library/Fonts" \
+			install_font_zip "Cascadia Code" "$url" 'CascadiaCode*.ttf'
+	else
+		record_failure "install Cascadia Code (could not find the latest release)" \
+			"download CascadiaCode-<version>.zip from https://github.com/microsoft/cascadia-code/releases/latest and copy the .ttf files to ~/Library/Fonts"
+	fi
+	log_info "Set your terminal font to 'JetBrainsMono Nerd Font' (starship icons) or 'Cascadia Code'."
+}
+
 # True if the tool's command is already on PATH (e.g. installed without mise).
 already_installed() {
 	command -v "$1" >/dev/null 2>&1
@@ -203,7 +286,7 @@ mise_install_all() {
 }
 
 install_cli_tools() {
-	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, Node.js LTS)"
+	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS)"
 	mise_install_all "${MISE_TOOLS[@]}"
 }
 
@@ -270,6 +353,8 @@ main() {
 	install_command_line_tools
 	install_mise
 	install_cli_tools
+	configure_starship
+	install_fonts
 	note_manual_apps
 	install_vscode_extensions
 	print_summary || exit 1
