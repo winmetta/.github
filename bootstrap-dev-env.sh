@@ -11,7 +11,7 @@
 # starship prompt and the latest Node.js LTS (via mise), and the required
 # VS Code extensions listed in VSCODE_EXTENSIONS below. It also copies the
 # JetBrains Mono Nerd Font .ttf files into ~/Library/Fonts (no Homebrew or admin
-# rights needed) and, if iTerm2 is installed, adds the "winmetta" iTerm2 profile
+# rights needed) and installs iTerm2 (into ~/Applications) with the "winmetta" iTerm2 profile
 # (iterm/winmetta.json, which uses that font) and makes it the default. It activates mise and
 # starship in ~/.zshrc (the macOS default shell) and ~/.bashrc, and makes ~/.bash_profile
 # load ~/.bashrc, because Terminal.app starts bash as a login shell.
@@ -31,12 +31,13 @@ set -Eeuo pipefail
 
 VSCODE_APP="/Applications/Visual Studio Code.app"
 FONT_DIR="$HOME/Library/Fonts"
-ITERM_APP="/Applications/iTerm.app"
+ITERM_APPS=("/Applications/iTerm.app" "$HOME/Applications/iTerm.app")
+ITERM_ZIP_URL="https://iterm2.com/downloads/stable/latest"
 ITERM_PROFILE_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/iterm/winmetta.json"
 ITERM_PROFILE_DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/winmetta.json"
 # Must match "Guid" in iterm/winmetta.json.
 ITERM_PROFILE_GUID="202DEC0E-11DE-43C2-A8D2-6A2399F97A1B"
-# "tool:command"; the command is what we look for on PATH to skip installs.
+# "tool:command"; the command is used to warn about non-mise copies on PATH.
 MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
 VSCODE_EXTENSIONS=(
@@ -248,14 +249,47 @@ install_fonts() {
 		'JetBrainsMonoNerdFont*.ttf'
 }
 
-# Install the "winmetta" iTerm2 profile as a Dynamic Profile (iTerm2 loads it
-# without restarting) and make it the default profile. iTerm2 may rewrite its
-# preferences when it quits, so quit it before running this to be safe.
+# True if iTerm2 is installed system-wide or in ~/Applications.
+iterm_installed() {
+	local app
+	for app in "${ITERM_APPS[@]}"; do
+		[[ -d "$app" ]] && return 0
+	done
+	return 1
+}
+
+# Download the latest stable iTerm2 into ~/Applications (no admin rights needed).
+# The URL redirects to the current iTerm2-<version>.zip; curl leaves no quarantine flag.
+install_iterm_app() {
+	local tmp dest="$HOME/Applications"
+	tmp="$(mktemp -d)" || return 1
+	if ! curl -fsSL -o "$tmp/iterm.zip" "$ITERM_ZIP_URL" || ! unzip -q "$tmp/iterm.zip" -d "$tmp/app"; then
+		rm -rf "${tmp:?}"
+		return 1
+	fi
+	mkdir -p "$dest"
+	if ! cp -R "$tmp/app/iTerm.app" "$dest/"; then
+		rm -rf "${tmp:?}"
+		return 1
+	fi
+	rm -rf "${tmp:?}"
+}
+
+# Install iTerm2 if missing, add the "winmetta" profile as a Dynamic Profile
+# (iTerm2 loads it without restarting) and make it the default profile. iTerm2
+# may rewrite its preferences when it quits, so quit it before running this.
 configure_iterm() {
-	log_step "iTerm2 profile (winmetta)"
-	if [[ ! -d "$ITERM_APP" ]]; then
-		log_info "iTerm2 is not installed ($ITERM_APP); skipping. Install it, then re-run this script."
-		return
+	log_step "iTerm2 (app and winmetta profile)"
+	if iterm_installed; then
+		log_ok "iTerm2 already installed"
+	else
+		log_info "downloading iTerm2 (about 60 MB)"
+		attempt "install iTerm2" \
+			"download iTerm2 from https://iterm2.com/downloads.html and move iTerm.app to ~/Applications" \
+			install_iterm_app
+		if ! iterm_installed; then
+			return
+		fi
 	fi
 	attempt "install iTerm2 profile" \
 		"copy .github/iterm/winmetta.json to '$ITERM_PROFILE_DEST'" \
@@ -272,12 +306,13 @@ install_iterm_profile() {
 	mkdir -p "$(dirname "$ITERM_PROFILE_DEST")" && cp "$ITERM_PROFILE_SRC" "$ITERM_PROFILE_DEST"
 }
 
-# True if the tool's command is already on PATH (e.g. installed without mise).
-already_installed() {
-	command -v "$1" >/dev/null 2>&1
+# True if mise has the tool installed. A copy on PATH from elsewhere (e.g.
+# Homebrew) does not count, so every tool ends up managed by mise.
+mise_has() {
+	"$1" where "${2%%@*}" >/dev/null 2>&1
 }
 
-# Install "tool:command" entries globally with mise, skipping tools already on PATH.
+# Install "tool:command" entries globally with mise, skipping tools mise already has.
 mise_install_all() {
 	local entry tool cmd mise_bin
 	mise_bin="$(find_mise)" || {
@@ -286,13 +321,24 @@ mise_install_all() {
 	}
 	for entry in "$@"; do
 		tool="${entry%%:*}" cmd="${entry#*:}"
-		if already_installed "$cmd"; then
-			log_ok "$tool already installed"
+		if mise_has "$mise_bin" "$tool"; then
+			log_ok "$tool already installed with mise"
 		else
 			log_info "installing $tool"
 			attempt "install $tool" "mise use -g $tool" "$mise_bin" use -g "$tool"
 		fi
+		warn_if_not_mise "$cmd"
 	done
+}
+
+# Note when a command on PATH is not the mise-managed one (e.g. a Homebrew copy).
+warn_if_not_mise() {
+	local path
+	path="$(command -v "$1" 2>/dev/null)" || return 0
+	case "$path" in
+	"$HOME"/.local/share/mise/*) ;;
+	*) NOTES+=("'$1' resolves to $path, not mise. Remove that copy (e.g. brew uninstall $1) so the mise one is used.") ;;
+	esac
 }
 
 install_cli_tools() {
