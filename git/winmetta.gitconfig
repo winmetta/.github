@@ -1,0 +1,92 @@
+# Win Metta shared git settings and aliases. bootstrap-dev-env.sh copies this to
+# ~/.config/git/winmetta.gitconfig and includes it at the top of ~/.gitconfig,
+# so anything you set later in ~/.gitconfig overrides it. List the aliases with
+# `explain-git-aliases`.
+
+[init]
+	defaultBranch = main
+
+[pull]
+	# Rebase instead of creating merge commits.
+	rebase = true
+
+[push]
+	# `git push` on a new branch creates the upstream automatically.
+	autoSetupRemote = true
+
+[fetch]
+	# Drop remote-tracking branches that were deleted on the remote.
+	prune = true
+
+[rebase]
+	autoStash = true
+
+[alias]
+	# A line starting with "#:" directly above an alias is its description, shown
+	# by `explain-git-aliases`. Other "#" lines are plain comments.
+
+	# --- Status and branches ---
+	#: short status with the branch and ahead/behind counts
+	st = status -sb
+	#: list local branches with their upstream and last commit
+	br = branch -vv
+	#: shorthand for checkout
+	co = checkout
+	#: shorthand for switch (change branches)
+	sw = switch
+	#: switch to main and fast-forward it from origin (never creates a merge commit)
+	main = !git switch main && git pull --ff-only
+
+	# --- Commits ---
+	#: shorthand for commit
+	ci = commit
+	#: add staged changes to the last commit, keeping its message (needs fp if already pushed)
+	amend = commit --amend --no-edit
+	#: undo the last commit but keep its changes staged
+	undo = reset --soft HEAD~1
+	#: remove files from the staging area without touching your edits
+	unstage = restore --staged
+	#: stage everything and commit it as "wip" (a throwaway save point)
+	wip = !git add -A && git commit -m 'wip'
+
+	# --- History ---
+	#: show the last commit with the files it changed
+	last = log -1 --stat
+	#: compact log, one line per commit: hash, date, subject, author and branch labels (like git log, shorter)
+	ls = "log --pretty=tformat:'%C(yellow)%h%C(reset) %C(green)%ad%C(reset) %s %C(blue)[%an]%C(reset)%C(red)%d%C(reset)' --date=short"
+	#: detailed log: full commit info (hash, author, date, message) plus the files changed in each commit
+	ll = log --stat --decorate --date=iso
+	#: compact graph of the last 20 commits on this branch
+	lg = log --graph --oneline --decorate -20
+	#: compact graph of every branch
+	lga = log --graph --oneline --decorate --all
+
+	# --- Diff ---
+	#: unstaged changes (what git add would stage)
+	d = diff
+	#: staged changes (what the next commit will contain)
+	ds = diff --staged
+	#: changes since the last commit, staged and unstaged together
+	dh = diff HEAD
+	#: diff highlighted word by word, easier to read for prose and long lines
+	dw = diff --word-diff
+	#: summary of changed files with line counts instead of the full diff
+	dst = diff --stat
+	#: everything this branch changes compared with where it split from main (what a PR would show)
+	dm = diff main...HEAD
+	#: only the names and status (A added, M modified, D deleted) of files this branch changes versus main
+	dfiles = diff --name-status main...HEAD
+
+	# --- Remote ---
+	#: force-push safely: refuses if someone else pushed to the branch since you last fetched
+	fp = push --force-with-lease
+	#: push the current branch and set its upstream (first push of a new branch)
+	pushu = push -u origin HEAD
+	#: fetch, drop deleted remote branches, then rebase your branch onto origin/main
+	sync = !git fetch --prune && git rebase origin/main
+
+	# --- Cleanup ---
+	#: list local branches whose remote branch is gone (usually deleted after the PR was squash-merged); safe to delete
+	gone = "!git branch -vv | awk '/: gone]/{print $1}'"
+	#: delete local branches already merged into main (squash-merged ones are not detected; use gone)
+	cleanup = "!git branch --merged main | grep -v -E '(^\\*|main)' | xargs git branch -d"

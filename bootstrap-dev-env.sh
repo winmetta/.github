@@ -14,7 +14,9 @@
 # rights needed) and installs iTerm2 (into ~/Applications) with the "winmetta" iTerm2 profile
 # (iterm/winmetta.json, which uses that font) and makes it the default. It activates mise and
 # starship in ~/.zshrc (the macOS default shell) and ~/.bashrc, and makes ~/.bash_profile
-# load ~/.bashrc, because Terminal.app starts bash as a login shell.
+# load ~/.bashrc, because Terminal.app starts bash as a login shell. It also sets the
+# git author (suggested from your GitHub account), installs shared git settings and
+# aliases (git/winmetta.gitconfig) and installs `explain-*` shell helpers (run `explain` to list them).
 #
 # VS Code and Antigravity CLI have no mise package and are installed by hand; see
 # the README. Only the steps everything else depends on (platform
@@ -38,6 +40,11 @@ ITERM_PROFILE_SRC="$SCRIPT_DIR/iterm/winmetta.json"
 ITERM_PROFILE_DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/winmetta.json"
 # Must match "Guid" in iterm/winmetta.json.
 ITERM_PROFILE_GUID="202DEC0E-11DE-43C2-A8D2-6A2399F97A1B"
+EXPLAIN_SRC="$SCRIPT_DIR/shell/explain.sh"
+EXPLAIN_DEST="$HOME/.config/winmetta/explain.sh"
+GIT_CONFIG_SRC="$SCRIPT_DIR/git/winmetta.gitconfig"
+GIT_CONFIG_DEST="$HOME/.config/git/winmetta.gitconfig"
+GIT_GLOBAL_CONFIG="${GIT_CONFIG_GLOBAL:-$HOME/.gitconfig}"
 STARSHIP_CONFIG_SRC="$SCRIPT_DIR/starship/starship.toml"
 STARSHIP_CONFIG_DEST="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
 # "tool:command"; the command is used to warn about non-mise copies on PATH.
@@ -337,6 +344,67 @@ configure_git_identity() {
 	done
 }
 
+# Install the shared git settings and aliases. The file is copied to
+# ~/.config/git/winmetta.gitconfig (replaced on every run, it is ours) and
+# included at the TOP of the global git config, so your own settings further
+# down still win.
+install_git_config() {
+	local tmp
+	mkdir -p "$(dirname "$GIT_CONFIG_DEST")" && cp "$GIT_CONFIG_SRC" "$GIT_CONFIG_DEST" || return 1
+	if git config --file "$GIT_GLOBAL_CONFIG" --get-all include.path 2>/dev/null | grep -qxF "$GIT_CONFIG_DEST"; then
+		log_info "$GIT_GLOBAL_CONFIG already includes it"
+		return 0
+	fi
+	tmp="$(mktemp)" || return 1
+	{
+		printf '[include]\n\tpath = %s\n\n' "$GIT_CONFIG_DEST"
+		cat "$GIT_GLOBAL_CONFIG" 2>/dev/null || true
+	} >"$tmp" && cat "$tmp" >"$GIT_GLOBAL_CONFIG"
+	local rc=$?
+	rm -f "$tmp"
+	return $rc
+}
+
+configure_git() {
+	log_step "git settings and aliases"
+	attempt "install git settings and aliases" \
+		"copy .github/git/winmetta.gitconfig to '$GIT_CONFIG_DEST' and add an [include] path for it at the top of ~/.gitconfig" \
+		install_git_config
+}
+
+# Install the explain-* shell helpers: copy shell/explain.sh to
+# ~/.config/winmetta/explain.sh (replaced on every run, it is ours) and source it
+# from a startup file. Also removes the old `galias` alias that an earlier
+# version of this script added.
+configure_explain_in() {
+	local rc="$1" line
+	line="[ -f \"$EXPLAIN_DEST\" ] && . \"$EXPLAIN_DEST\""
+	if [[ -f "$rc" ]] && grep -q '^alias galias=' "$rc"; then
+		sed -i.bak '/^alias galias=/d' "$rc" && rm -f "$rc.bak"
+		log_info "removed the old galias alias from $rc"
+	fi
+	if grep -qF "$EXPLAIN_DEST" "$rc" 2>/dev/null; then
+		log_ok "explain helpers already sourced in $rc"
+	else
+		printf '%s\n' "$line" >>"$rc"
+		log_ok "sourced the explain helpers in $rc"
+	fi
+}
+
+install_explain() {
+	mkdir -p "$(dirname "$EXPLAIN_DEST")" && cp "$EXPLAIN_SRC" "$EXPLAIN_DEST" || return 1
+	configure_explain_in "${ZDOTDIR:-$HOME}/.zshrc"
+	configure_explain_in "$HOME/.bashrc"
+}
+
+configure_explain() {
+	log_step "shell helpers (explain-*)"
+	attempt "install explain-* shell helpers" \
+		"copy .github/shell/explain.sh to '$EXPLAIN_DEST' and add '. $EXPLAIN_DEST' to ~/.zshrc and ~/.bashrc" \
+		install_explain
+	log_info "Run 'explain' in a new terminal to list them."
+}
+
 # Download a font zip and copy its .ttf files into ~/Library/Fonts (per user, no
 # admin rights). Skips static/ instances to avoid duplicate families. Skipped when
 # a file matching the glob "$3" is already installed.
@@ -537,7 +605,9 @@ main() {
 	install_mise
 	install_cli_tools
 	configure_git_identity
+	configure_git
 	configure_starship
+	configure_explain
 	install_fonts
 	configure_iterm
 	note_manual_apps
