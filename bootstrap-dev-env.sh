@@ -14,7 +14,8 @@
 #     claude, codex, starship, Node.js LTS, Python 3, vim, a modern bash, wget,
 #     ripgrep, fd, sd, bat, fzf, zoxide, tree, jq, markdownlint-cli2, prettier,
 #     lefthook, gitleaks, the AWS CLI (aws), the Pulumi CLI, uv (uv, uvx) and
-#     containers without Docker Desktop: docker, docker-compose, colima and lima, and actionlint for workflow files
+#     actionlint for workflow files. Containers without Docker Desktop (docker,
+#     docker-compose, colima and lima) are optional: add them with --containers
 #   - git: author name and email (suggested from your GitHub account), shared
 #     settings and aliases (git/winmetta.gitconfig), a global ignore file with
 #     .DS_Store (git/ignore), the commit-message editor (Zed or vim), and the
@@ -93,7 +94,10 @@ STARSHIP_CONFIG_SRC="$SCRIPT_DIR/starship/starship.toml"
 STARSHIP_CONFIG_DEST="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
 # "tool:command" (the command is the part after the LAST colon, so tools like
 # conda:bash work); the command is used to warn about non-mise copies on PATH.
-MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3 vim:vim conda:bash:bash conda:wget:wget ripgrep:rg fd:fd sd:sd bat:bat fzf:fzf zoxide:zoxide conda:tree:tree jq:jq npm:markdownlint-cli2:markdownlint-cli2 npm:prettier:prettier lefthook:lefthook gitleaks:gitleaks aws-cli:aws pulumi:pulumi uv:uv docker-cli:docker docker-compose:docker-compose colima:colima lima:limactl actionlint:actionlint)
+MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3 vim:vim conda:bash:bash conda:wget:wget ripgrep:rg fd:fd sd:sd bat:bat fzf:fzf zoxide:zoxide conda:tree:tree jq:jq npm:markdownlint-cli2:markdownlint-cli2 npm:prettier:prettier lefthook:lefthook gitleaks:gitleaks aws-cli:aws pulumi:pulumi uv:uv actionlint:actionlint)
+# Optional: only installed with --containers (no repo needs them yet).
+CONTAINER_TOOLS=(docker-cli:docker docker-compose:docker-compose colima:colima lima:limactl)
+WITH_CONTAINERS=0
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
 VSCODE_EXTENSIONS=(
 	dbaeumer.vscode-eslint
@@ -666,6 +670,7 @@ install_docker_compose_plugin() {
 }
 
 configure_docker() {
+	((WITH_CONTAINERS)) || return 0
 	log_step "docker compose plugin"
 	attempt "link docker-compose as a docker CLI plugin" \
 		"mkdir -p ~/.docker/cli-plugins && ln -sfn <mise docker-compose> ~/.docker/cli-plugins/docker-compose" \
@@ -922,8 +927,14 @@ warn_if_not_mise() {
 }
 
 install_cli_tools() {
-	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python, vim, bash, wget, rg, fd, sd, bat, fzf, zoxide, tree, jq, markdownlint, prettier, lefthook, gitleaks, aws, pulumi, uv, docker, compose, colima, actionlint)"
+	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python, vim, bash, wget, rg, fd, sd, bat, fzf, zoxide, tree, jq, markdownlint, prettier, lefthook, gitleaks, aws, pulumi, uv, actionlint)"
 	mise_install_all "${MISE_TOOLS[@]}"
+	if ((WITH_CONTAINERS)); then
+		log_step "Container tools (docker, docker-compose, colima, lima)"
+		mise_install_all "${CONTAINER_TOOLS[@]}"
+	else
+		NOTES+=("Container tools (docker, colima) were not installed. Add them with: ./.github/bootstrap-dev-env.sh --containers")
+	fi
 }
 
 # Apps with no mise package are installed by hand, not by this script.
@@ -984,7 +995,31 @@ print_summary() {
 	((${#FAILURES[@]} == 0))
 }
 
+usage() {
+	cat <<'USAGE'
+Usage: bootstrap-dev-env.sh [--containers]
+
+  --containers  also install docker, docker-compose, colima and lima
+                (containers without Docker Desktop; no repo needs them yet)
+  -h, --help    show this help
+USAGE
+}
+
 main() {
+	local arg
+	for arg in "$@"; do
+		case "$arg" in
+		--containers) WITH_CONTAINERS=1 ;;
+		-h | --help)
+			usage
+			exit 0
+			;;
+		*)
+			usage >&2
+			exit 2
+			;;
+		esac
+	done
 	check_platform
 	install_command_line_tools
 	install_mise
