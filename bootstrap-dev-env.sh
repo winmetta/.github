@@ -76,7 +76,17 @@ DESKTOPSERVICES_DOMAIN="com.apple.desktopservices"
 GIT_IGNORE_SRC="$SCRIPT_DIR/git/ignore"
 GIT_CONFIG_SRC="$SCRIPT_DIR/git/winmetta.gitconfig"
 GIT_CONFIG_DEST="$HOME/.config/git/winmetta.gitconfig"
-GIT_GLOBAL_CONFIG="${GIT_CONFIG_GLOBAL:-$HOME/.gitconfig}"
+# The file that `git config --global` reads and writes: $GIT_CONFIG_GLOBAL if set,
+# else ~/.gitconfig, except that an existing XDG config (~/.config/git/config) is
+# used while ~/.gitconfig does not exist, so creating ~/.gitconfig never takes over
+# from a developer who keeps their settings in the XDG file.
+if [[ -n "${GIT_CONFIG_GLOBAL:-}" ]]; then
+	GIT_GLOBAL_CONFIG="$GIT_CONFIG_GLOBAL"
+elif [[ ! -e "$HOME/.gitconfig" && -e "${XDG_CONFIG_HOME:-$HOME/.config}/git/config" ]]; then
+	GIT_GLOBAL_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/git/config"
+else
+	GIT_GLOBAL_CONFIG="$HOME/.gitconfig"
+fi
 STARSHIP_CONFIG_SRC="$SCRIPT_DIR/starship/starship.toml"
 STARSHIP_CONFIG_DEST="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
 # "tool:command" (the command is the part after the LAST colon, so tools like
@@ -290,6 +300,13 @@ install_starship_config() {
 	esac
 }
 
+# A git setting as it applies outside any repository: the system and global files
+# (both ~/.gitconfig and the XDG config), but not this clone's own .git/config.
+# Used to decide whether a machine-wide setting is already there.
+git_global_get() {
+	(cd / && git config --get "$@" 2>/dev/null) || true
+}
+
 # Run gh from PATH, or through mise when this shell has not activated mise yet.
 run_gh() {
 	local mise_bin
@@ -330,7 +347,8 @@ offer_gh_login() {
 
 # Make sure git has a commit author. Without user.name/user.email git guesses
 # them from the OS user and hostname (e.g. "alo <alo@mac.local>"), which ends up
-# in every commit. Missing values are saved globally (all repos), suggesting the
+# in every commit. Missing values are looked up outside this clone (a repo-local
+# identity does not count) and saved globally (all repos), suggesting the
 # GitHub account's name and noreply email (offering to run `gh auth login` first
 # if gh is not signed in); press Enter to
 # accept the suggestion or type another value. Values already set (globally or
@@ -340,7 +358,7 @@ configure_git_identity() {
 	local key value suggestion label gh_identity=""
 	local missing=0
 	for key in name email; do
-		if [[ -z "$(git -C "$SCRIPT_DIR" config --get "user.$key" 2>/dev/null || true)" ]]; then
+		if [[ -z "$(git_global_get "user.$key")" ]]; then
 			missing=1
 		fi
 	done
@@ -351,7 +369,7 @@ configure_git_identity() {
 		fi
 	fi
 	for key in name email; do
-		value="$(git -C "$SCRIPT_DIR" config --get "user.$key" 2>/dev/null || true)"
+		value="$(git_global_get "user.$key")"
 		if [[ -n "$value" ]]; then
 			log_ok "user.$key = $value"
 			continue
@@ -404,7 +422,7 @@ install_git_config() {
 # have are left alone, and nothing is ever removed.
 install_git_ignore() {
 	local target line added=0
-	target="$(git config --global --type=path --get core.excludesFile 2>/dev/null || true)"
+	target="$(git_global_get --type=path core.excludesFile)"
 	[[ -n "$target" ]] || target="${XDG_CONFIG_HOME:-$HOME/.config}/git/ignore"
 	mkdir -p "$(dirname "$target")" && touch "$target" || return 1
 	while IFS= read -r line; do
@@ -553,7 +571,7 @@ configure_zed() {
 configure_git_editor() {
 	log_step "git editor (Zed or vim)"
 	local current default choice="" answer=""
-	current="$(git config --file "$GIT_GLOBAL_CONFIG" --get core.editor 2>/dev/null || true)"
+	current="$(git_global_get core.editor)"
 	if [[ -n "$current" ]]; then
 		log_ok "core.editor = $current (already set; change it with: git config --global core.editor vim)"
 		return

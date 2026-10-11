@@ -70,8 +70,8 @@
 	undo = reset --soft HEAD~1
 	#: remove files from the staging area without touching your edits
 	unstage = restore --staged
-	#: stage everything and commit it as "wip" (a throwaway save point)
-	wip = !git add -A && git commit -m 'wip'
+	#: stage everything and commit it as "chore: wip", a throwaway save point (the message passes the Conventional Commits hook)
+	wip = !git add -A && git commit -m 'chore: wip'
 
 	# --- History ---
 	#: show the last commit with the files it changed
