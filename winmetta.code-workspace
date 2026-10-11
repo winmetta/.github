@@ -76,7 +76,7 @@
       {
         "label": "Bootstrap dev environment (shared tools)",
         "type": "shell",
-        "command": "./.github/bootstrap-dev-env.sh",
+        "command": "./bootstrap-dev-env/bootstrap.sh",
         "problemMatcher": [],
         "presentation": { "reveal": "always", "panel": "dedicated" },
       },
@@ -90,21 +90,21 @@
       {
         "label": "Lint shell scripts (shellcheck + shfmt)",
         "type": "shell",
-        "command": "shellcheck .github/*.sh winmetta-platform/scripts/*.sh && shfmt -d .github/*.sh winmetta-platform/scripts/*.sh",
+        "command": "shellcheck -s bash -x -P SCRIPTDIR .github/*.sh .github/scripts/*.sh bootstrap-dev-env/bootstrap.sh bootstrap-dev-env/lib/*.sh bootstrap-dev-env/platforms/*.sh winmetta-platform/scripts/*.sh && shfmt -d .github/*.sh .github/scripts/*.sh bootstrap-dev-env/bootstrap.sh bootstrap-dev-env/lib bootstrap-dev-env/platforms winmetta-platform/scripts/*.sh",
         "problemMatcher": [],
         "presentation": { "reveal": "always", "panel": "shared" },
       },
       {
         "label": "Check Markdown (markdownlint + prettier)",
         "type": "shell",
-        "command": "markdownlint-cli2 '.github/*.md' && prettier --check '.github/*.md'",
+        "command": "markdownlint-cli2 '.github/*.md' 'bootstrap-dev-env/*.md' 'bootstrap-dev-env/platforms/*.md' && prettier --check '.github/*.md' 'bootstrap-dev-env/*.md' 'bootstrap-dev-env/platforms/*.md'",
         "problemMatcher": [],
         "presentation": { "reveal": "always", "panel": "shared" },
       },
       {
         "label": "Fix and format Markdown (markdownlint --fix + prettier)",
         "type": "shell",
-        "command": "markdownlint-cli2 --fix '.github/*.md'; prettier --write '.github/*.md'",
+        "command": "markdownlint-cli2 --fix '.github/*.md' 'bootstrap-dev-env/*.md' 'bootstrap-dev-env/platforms/*.md'; prettier --write '.github/*.md' 'bootstrap-dev-env/*.md' 'bootstrap-dev-env/platforms/*.md'",
         "problemMatcher": [],
         "presentation": { "reveal": "always", "panel": "shared" },
       },
