@@ -1,0 +1,11 @@
+z (zoxide): smarter cd. It learns the folders you visit, then jumps by a fragment of the name.
+
+z winmetta                                    # jump to the best-matching folder you have used before
+z win plat                                    # several fragments, in order: finds ~/winmetta/winmetta-platform
+z -                                           # back to the previous folder
+zi winmetta                                   # interactive: choose among the matches with fzf
+zoxide query -ls                              # list what it has learned, with scores (-l list, -s score)
+zoxide query winmetta                         # print the match without going there
+zoxide add ~/some/dir                         # teach it a folder without visiting
+zoxide remove ~/old/dir                       # forget a folder
+It only knows folders you visited since it was installed; plain cd still works and also teaches it.

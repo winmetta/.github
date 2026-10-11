@@ -21,6 +21,7 @@
     "flyfly6.terminal-in-status-bar",
     "iancovski.reveal-in-explorer",
     "mkhl.shfmt",
-    "davidanson.vscode-markdownlint"
+    "davidanson.vscode-markdownlint",
+    "github.vscode-pull-request-github"
   ]
 }
