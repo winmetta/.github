@@ -1,7 +1,7 @@
 name: CI
 
 # The same checks as the local git hooks (lefthook.yml), so a skipped hook or a
-# contributor without the bootstrap script cannot get past them. The job is called
+# contributor who never ran `lefthook install` cannot get past them. The job is called
 # "checks" because the branch ruleset requires a status check with that name.
 on:
   pull_request:

@@ -1,6 +1,6 @@
-# Git hooks for this repo, run by lefthook (https://lefthook.dev). The bootstrap
-# script runs `lefthook install` here; to do it by hand: lefthook install
-# The hooks use the tools the bootstrap installs with mise (shellcheck, shfmt,
+# Git hooks for this repo, run by lefthook (https://lefthook.dev). Install them once
+# in each clone with: lefthook install
+# The hooks use tools installed with mise by bootstrap-dev-env (shellcheck, shfmt,
 # markdownlint-cli2, prettier, actionlint, gitleaks), so run git from a terminal where mise
 # is active. Skip them once with: git commit --no-verify. The CI workflow
 # (.github/workflows/ci.yml) runs the same checks on every pull request.
@@ -22,10 +22,6 @@ pre-commit:
       # CLAUDE.md is a symlink to AGENTS.md and prettier refuses symlinks.
       exclude: "CLAUDE.md"
       run: prettier --check {staged_files}
-    # The iTerm profile must stay valid JSON, or iTerm silently ignores it.
-    json:
-      glob: "iterm/*.json"
-      run: python3 -c 'import json, sys; [json.load(open(f)) for f in sys.argv[1:]]' {staged_files}
     # Lint GitHub Actions workflows (syntax, expressions, shell steps).
     actionlint:
       glob: ".github/workflows/*.{yml,yaml}"
