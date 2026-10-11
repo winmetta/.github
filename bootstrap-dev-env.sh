@@ -76,14 +76,16 @@ DESKTOPSERVICES_DOMAIN="com.apple.desktopservices"
 GIT_IGNORE_SRC="$SCRIPT_DIR/git/ignore"
 GIT_CONFIG_SRC="$SCRIPT_DIR/git/winmetta.gitconfig"
 GIT_CONFIG_DEST="$HOME/.config/git/winmetta.gitconfig"
-# The file that `git config --global` reads and writes: $GIT_CONFIG_GLOBAL if set,
-# else ~/.gitconfig, except that an existing XDG config (~/.config/git/config) is
-# used while ~/.gitconfig does not exist, so creating ~/.gitconfig never takes over
-# from a developer who keeps their settings in the XDG file.
+# The file that gets the [include] of the shared git settings. Git reads the XDG
+# config (~/.config/git/config) first and ~/.gitconfig second, and later values win,
+# so when the XDG file exists the include goes at the top of THAT file: the shared
+# values then rank below your own settings in both files. Otherwise it goes at the
+# top of ~/.gitconfig ($GIT_CONFIG_GLOBAL replaces both when it is set).
+GIT_XDG_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/git/config"
 if [[ -n "${GIT_CONFIG_GLOBAL:-}" ]]; then
 	GIT_GLOBAL_CONFIG="$GIT_CONFIG_GLOBAL"
-elif [[ ! -e "$HOME/.gitconfig" && -e "${XDG_CONFIG_HOME:-$HOME/.config}/git/config" ]]; then
-	GIT_GLOBAL_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/git/config"
+elif [[ -e "$GIT_XDG_CONFIG" ]]; then
+	GIT_GLOBAL_CONFIG="$GIT_XDG_CONFIG"
 else
 	GIT_GLOBAL_CONFIG="$HOME/.gitconfig"
 fi
@@ -400,12 +402,18 @@ configure_git_identity() {
 # included at the TOP of the global git config, so your own settings further
 # down still win.
 install_git_config() {
-	local tmp
+	local tmp f
 	mkdir -p "$(dirname "$GIT_CONFIG_DEST")" && cp "$GIT_CONFIG_SRC" "$GIT_CONFIG_DEST" || return 1
-	if git config --file "$GIT_GLOBAL_CONFIG" --get-all include.path 2>/dev/null | grep -qxF "$GIT_CONFIG_DEST"; then
-		log_info "$GIT_GLOBAL_CONFIG already includes it"
-		return 0
-	fi
+	# An include from an earlier run may sit in either file: do not add a second one.
+	# ($GIT_CONFIG_GLOBAL replaces both files, so then only that one counts.)
+	local files=("$GIT_GLOBAL_CONFIG")
+	[[ -n "${GIT_CONFIG_GLOBAL:-}" ]] || files=("$GIT_GLOBAL_CONFIG" "$GIT_XDG_CONFIG" "$HOME/.gitconfig")
+	for f in "${files[@]}"; do
+		if [[ -e "$f" ]] && git config --file "$f" --get-all include.path 2>/dev/null | grep -qxF "$GIT_CONFIG_DEST"; then
+			log_info "$f already includes it"
+			return 0
+		fi
+	done
 	tmp="$(mktemp)" || return 1
 	{
 		printf '[include]\n\tpath = %s\n\n' "$GIT_CONFIG_DEST"
