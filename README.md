@@ -9,6 +9,9 @@ Org-wide defaults, shared AI-agent context, and the **starting point for develop
 - [.markdownlint.json](.markdownlint.json): shared markdownlint rules (long lines allowed)
 - [.prettierrc.json](.prettierrc.json): Prettier settings for the Markdown in this repo (long lines are not re-wrapped)
 - [lefthook.yml](lefthook.yml): git hooks for this repo: pre-commit checks (shellcheck, shfmt, markdownlint, prettier, JSON validity, gitleaks secret scan) and a Conventional Commits check on the commit message
+- [.github/workflows/ci.yml](.github/workflows/ci.yml): the CI job `checks` that runs the same checks on every pull request
+- [scripts/conventional-commit.sh](scripts/conventional-commit.sh): the Conventional Commits check shared by the git hook and CI
+- [rulesets/default.json](rulesets/default.json): the branch ruleset for the default branch, the same as `winmetta-platform`'s
 - [.vscode/extensions.json](.vscode/extensions.json): recommended (optional) VS Code extensions, shared by the whole workspace
 - [winmetta.code-workspace](winmetta.code-workspace): the VS Code workspace file (settings and tasks for the whole workspace)
 - [git/](git/): shared git settings and aliases, installed by the bootstrap script
@@ -219,6 +222,21 @@ Each repo owns its own setup (language runtime, dependencies, browsers), documen
 | `explain-*` helpers                          | list the tools, aliases and settings                                                                      | copy `.github/shell/explain.sh` to `~/.config/winmetta/explain.sh` and add `. ~/.config/winmetta/explain.sh` to `~/.zshrc`                                                                                                             |
 | fzf options and shell history                | Ctrl-R preview and a long shared history                                                                  | copy `.github/shell/fzf.sh` to `~/.config/winmetta/fzf.sh` and add `. ~/.config/winmetta/fzf.sh` to `~/.zshrc`                                                                                                                         |
 | VS Code extensions                           | required set                                                                                              | `code --install-extension <id>` for each ID in `VSCODE_EXTENSIONS` in `bootstrap-dev-env.sh`                                                                                                                                           |
+
+### Checks, CI and branch rules
+
+The same checks run in two places, so a skipped hook cannot get past them:
+
+- **Locally**, as git hooks ([lefthook.yml](lefthook.yml)), installed by the bootstrap script.
+- **In GitHub Actions** ([.github/workflows/ci.yml](.github/workflows/ci.yml)), as one job called `checks` on every pull request and push to `main`. It installs the same tools with mise at pinned versions, runs `lefthook run pre-commit --all-files` (shellcheck, shfmt, markdownlint, prettier, actionlint, a JSON check and gitleaks), scans the whole git history with gitleaks, and checks that the PR title and every commit subject follow [Conventional Commits](https://www.conventionalcommits.org/) with [scripts/conventional-commit.sh](scripts/conventional-commit.sh). The PR title is checked because a squash merge turns it into the commit subject. To update a pinned tool, look up the latest version (`mise latest <tool>`) and change it in the workflow.
+
+The default branch follows the same rules as `winmetta-platform`, kept in [rulesets/default.json](rulesets/default.json): no deleting it or force-pushing to it, changes only through a pull request that is squash-merged, stale approvals dismissed when new commits are pushed, all review threads resolved, and the `checks` job passing. It has no bypass list, so administrators follow the rules too. The repository settings that go with it are squash merge only, delete the branch after merge, the squash commit taking the PR title and description, and secret scanning with push protection on. A repository admin applies them once:
+
+```bash
+gh api -X POST repos/winmetta/.github/rulesets --input rulesets/default.json
+gh api -X PATCH repos/winmetta/.github -F allow_merge_commit=false -F allow_rebase_merge=false -F delete_branch_on_merge=true -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=PR_BODY
+gh api -X PATCH repos/winmetta/.github -f 'security_and_analysis[secret_scanning][status]=enabled' -f 'security_and_analysis[secret_scanning_push_protection][status]=enabled'
+```
 
 ### Example: `winmetta-platform`
 

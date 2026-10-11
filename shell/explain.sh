@@ -124,6 +124,7 @@ gh|GitHub from the terminal: clone, pull requests, issues, API calls|gh repo clo
 git|version control; shared settings and aliases are in ~/.config/git/winmetta.gitconfig|explain-git-aliases ; explain-git-config
 shellcheck|finds bugs in shell scripts|shellcheck script.sh
 shfmt|formats shell scripts consistently|shfmt -d script.sh   (diff) ; shfmt -w script.sh   (rewrite)
+actionlint|checks GitHub Actions workflow files for mistakes before you push|actionlint ; actionlint .github/workflows/ci.yml
 aws|the AWS command line; sign in with SSO, then s3, ec2, logs and any other service|aws sso login --profile NAME ; aws sts get-caller-identity ; aws s3 ls
 gitleaks|scans for secrets (tokens, keys, passwords) in files and git history|gitleaks git --staged --redact ; gitleaks dir .
 lefthook|runs the git hooks in lefthook.yml (checks before each commit, commit-message check)|lefthook install ; lefthook run pre-commit
