@@ -15,3 +15,4 @@ npx <tool>                                    # run a package's command without 
 npm ls --depth=0                              # top-level dependencies only
 npm outdated                                  # dependencies with newer versions available
 mise use node@22                              # pin the Node version for this repo (see explain-mise)
+npm in detail: explain-npm. Running package commands without installing: explain-npx. Python equivalents: explain-uv, explain-uvx.

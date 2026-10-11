@@ -85,10 +85,12 @@ START
 	done <<'GROUPS'
 search and files|rg fd sd bat tree find grep sed awk xargs jq fzf z
 git and GitHub|git gh lefthook gitleaks
+cloud|aws pulumi
+containers|docker docker-compose colima
 editors|vim
 shell scripts|shellcheck shfmt
 markdown|markdownlint prettier
-languages|python node
+languages|python node npm npx uv uvx
 network|curl wget ssh scp rsync ssh-keygen ssh-copy-id ssh-add
 system|df du top free ps kill lsof chmod tail diff tar gzip
 macOS|security
@@ -122,6 +124,7 @@ gh|GitHub from the terminal: clone, pull requests, issues, API calls|gh repo clo
 git|version control; shared settings and aliases are in ~/.config/git/winmetta.gitconfig|explain-git-aliases ; explain-git-config
 shellcheck|finds bugs in shell scripts|shellcheck script.sh
 shfmt|formats shell scripts consistently|shfmt -d script.sh   (diff) ; shfmt -w script.sh   (rewrite)
+aws|the AWS command line; sign in with SSO, then s3, ec2, logs and any other service|aws sso login --profile NAME ; aws sts get-caller-identity ; aws s3 ls
 gitleaks|scans for secrets (tokens, keys, passwords) in files and git history|gitleaks git --staged --redact ; gitleaks dir .
 lefthook|runs the git hooks in lefthook.yml (checks before each commit, commit-message check)|lefthook install ; lefthook run pre-commit
 markdownlint-cli2|checks Markdown files for style problems (rules in .markdownlint.json); --fix repairs what it can|markdownlint-cli2 README.md ; markdownlint-cli2 --fix README.md
@@ -130,11 +133,17 @@ claude|Claude Code, an AI coding agent|claude
 codex|Codex CLI, an AI coding agent|codex
 starship|the shell prompt: path, git branch, ahead/behind counts and a green check when synced|edit ~/.config/starship.toml ; explain-starship
 node|JavaScript runtime (latest LTS; repos pin their own version)|node --version ; mise use node@22
+pulumi|infrastructure as code: preview, then apply changes to real cloud resources|pulumi preview ; pulumi up ; pulumi stack ls
+uv|fast Python package, project and tool manager (pip, venv and pipx in one); uvx runs a tool without installing it|uv init ; uv add requests ; uv run script.py ; uvx ruff --version
 python3|Python 3 (latest stable; repos pin their own version)|python3 --version ; python3 -m venv .venv
 vim|terminal editor with the shared ~/.config/winmetta/.vimrc and plugins (surround, commentary, Copilot)|vim file ; :help surround
 bash|bash 5 (macOS ships 3.2): test scripts on both versions|bash --version ; /bin/bash --version
 wget|download files from the web|wget https://example.com/file.zip
 rg|ripgrep: fast text search that respects .gitignore (a better grep -r)|rg "TODO" ; rg -t py "import" ; rg -l foo
+docker|builds and runs containers; needs an engine, which colima provides (no Docker Desktop)|docker run --rm hello-world ; docker ps ; docker logs -f NAME
+docker-compose|runs several containers from one compose.yaml; also available as docker compose|docker compose up -d ; docker compose logs -f ; docker compose down
+colima|starts the Linux VM with the Docker engine, as your user (no sudo)|colima start ; colima status ; colima stop
+limactl|the Linux VM layer under colima; you rarely call it yourself|limactl list
 fd|fast file finder with simple syntax (a better find)|fd readme ; fd -e md ; fd -t d src
 jq|reads, filters and reshapes JSON|jq . file.json ; curl -s URL | jq '.items[].id'
 tree|draws a folder as a tree; aliases tree2, tree3, treea, treed and treeg are shortcuts (see explain-aliases)|tree -L 2 ; tree2 ; treeg
@@ -311,7 +320,6 @@ unset _explain_f
 # Names people type for the same tool.
 explain-zoxide() { explain-z; }
 explain-python3() { explain-python; }
-explain-npm() { explain-node; }
 explain-ripgrep() { explain-rg; }
 explain-dh() { explain-df; }
 explain-head() { explain-tail; }
@@ -322,6 +330,9 @@ explain-zip() { explain-tar; }
 explain-unzip() { explain-tar; }
 explain-chown() { explain-chmod; }
 explain-cmp() { explain-diff; }
+explain-compose() { explain-docker-compose; }
+explain-lima() { explain-colima; }
+explain-limactl() { explain-colima; }
 explain-keychain() { explain-security; }
 explain-sshkeygen() { explain-ssh-keygen; }
 explain-gunzip() { explain-gzip; }

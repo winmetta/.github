@@ -13,7 +13,8 @@
 #   - CLI tools, installed with mise (see MISE_TOOLS below): gh, shellcheck, shfmt,
 #     claude, codex, starship, Node.js LTS, Python 3, vim, a modern bash, wget,
 #     ripgrep, fd, sd, bat, fzf, zoxide, tree, jq, markdownlint-cli2, prettier,
-#     lefthook and gitleaks
+#     lefthook, gitleaks, the AWS CLI (aws), the Pulumi CLI, uv (uv, uvx) and
+#     containers without Docker Desktop: docker, docker-compose, colima and lima
 #   - git: author name and email (suggested from your GitHub account), shared
 #     settings and aliases (git/winmetta.gitconfig), a global ignore file with
 #     .DS_Store (git/ignore), the commit-message editor (Zed or vim), and the
@@ -80,7 +81,7 @@ STARSHIP_CONFIG_SRC="$SCRIPT_DIR/starship/starship.toml"
 STARSHIP_CONFIG_DEST="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
 # "tool:command" (the command is the part after the LAST colon, so tools like
 # conda:bash work); the command is used to warn about non-mise copies on PATH.
-MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3 vim:vim conda:bash:bash conda:wget:wget ripgrep:rg fd:fd sd:sd bat:bat fzf:fzf zoxide:zoxide conda:tree:tree jq:jq npm:markdownlint-cli2:markdownlint-cli2 npm:prettier:prettier lefthook:lefthook gitleaks:gitleaks)
+MISE_TOOLS=(gh:gh shellcheck:shellcheck shfmt:shfmt claude:claude codex:codex starship:starship node@lts:node python@latest:python3 vim:vim conda:bash:bash conda:wget:wget ripgrep:rg fd:fd sd:sd bat:bat fzf:fzf zoxide:zoxide conda:tree:tree jq:jq npm:markdownlint-cli2:markdownlint-cli2 npm:prettier:prettier lefthook:lefthook gitleaks:gitleaks aws-cli:aws pulumi:pulumi uv:uv docker-cli:docker docker-compose:docker-compose colima:colima lima:limactl)
 # Required VS Code extensions (the full recommended set is .vscode/extensions.json).
 VSCODE_EXTENSIONS=(
 	dbaeumer.vscode-eslint
@@ -625,6 +626,27 @@ configure_macos_defaults() {
 	fi
 }
 
+# Make `docker compose` (the form most docs use) work: Docker finds compose as a
+# CLI plugin in ~/.docker/cli-plugins, so link mise's docker-compose binary there.
+# The link goes through mise's "latest" folder, so it survives upgrades.
+install_docker_compose_plugin() {
+	local mise_bin dir src plugins="${DOCKER_CONFIG:-$HOME/.docker}/cli-plugins"
+	mise_bin="$(find_mise)" || return 1
+	dir="$("$mise_bin" where docker-compose 2>/dev/null)" || return 1
+	src="$(dirname "$dir")/latest/docker-compose"
+	[[ -x "$src" ]] || src="$dir/docker-compose"
+	[[ -x "$src" ]] || return 1
+	mkdir -p "$plugins" && ln -sfn "$src" "$plugins/docker-compose"
+}
+
+configure_docker() {
+	log_step "docker compose plugin"
+	attempt "link docker-compose as a docker CLI plugin" \
+		"mkdir -p ~/.docker/cli-plugins && ln -sfn <mise docker-compose> ~/.docker/cli-plugins/docker-compose" \
+		install_docker_compose_plugin
+	log_info "No Docker engine runs by default: start one with 'colima start' (see 'explain colima')."
+}
+
 # Run vim from mise when it has one, else whatever vim is on PATH.
 run_vim() {
 	local mise_bin
@@ -874,7 +896,7 @@ warn_if_not_mise() {
 }
 
 install_cli_tools() {
-	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python, vim, bash, wget, rg, fd, sd, bat, fzf, zoxide, tree, jq, markdownlint, prettier, lefthook, gitleaks)"
+	log_step "CLI tools (gh, shellcheck, shfmt, claude, codex, starship, Node.js LTS, Python, vim, bash, wget, rg, fd, sd, bat, fzf, zoxide, tree, jq, markdownlint, prettier, lefthook, gitleaks, aws, pulumi, uv, docker, compose, colima)"
 	mise_install_all "${MISE_TOOLS[@]}"
 }
 
@@ -953,6 +975,7 @@ main() {
 	configure_zed
 	configure_git_editor
 	configure_git_hooks
+	configure_docker
 	configure_macos_defaults
 	note_manual_apps
 	install_vscode_extensions
