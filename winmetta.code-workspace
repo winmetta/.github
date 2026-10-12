@@ -7,10 +7,10 @@
       "path": ".",
     },
     {
-      "path": "../winmetta-platform",
+      "path": "winmetta-platform",
     },
     {
-      "path": "../bootstrap-dev-env",
+      "path": "bootstrap-dev-env",
     },
   ],
   "settings": {

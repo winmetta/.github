@@ -68,7 +68,7 @@ Always open the workspace through the link in the **workspace root**, not the co
 code "$WORKSPACE/winmetta.code-workspace"
 ```
 
-Or, in VS Code, use **File → Open Workspace from File…** and choose `winmetta.code-workspace` in the workspace root (e.g. `~/winmetta`). The workspace's folder and its tasks are relative to the workspace root. Opening `.github/winmetta.code-workspace` directly makes `.github` the root instead, so you won't see the other repos and the tasks fail. Opening the workspace gives you the shared editor settings, a prompt for the recommended extensions, and **Tasks: Run Task** entries for the setup scripts.
+Or, in VS Code, use **File → Open Workspace from File…** and choose `winmetta.code-workspace` in the workspace root (e.g. `~/winmetta`). The workspace's folder and its tasks are relative to the workspace root. Opening `.github/winmetta.code-workspace` directly makes `.github` the root instead, so you won't see the other repos and the tasks fail. The workspace lists `.` (the workspace root, which the tasks use) first, then `winmetta-platform` and `bootstrap-dev-env` as folders of their own, with paths relative to the workspace root; add a folder for each repo you want as a separate root. Opening the workspace gives you the shared editor settings, a prompt for the recommended extensions, and **Tasks: Run Task** entries for the setup scripts.
 
 ### 3. Clone the repos you need
 
