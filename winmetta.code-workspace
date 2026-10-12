@@ -6,6 +6,12 @@
     {
       "path": ".",
     },
+    {
+      "path": "../winmetta-platform",
+    },
+    {
+      "path": "../bootstrap-dev-env",
+    },
   ],
   "settings": {
     // Whitespace and line endings come from the shared .editorconfig.
