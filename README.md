@@ -52,7 +52,6 @@ gh repo clone winmetta/.github
 ├── .editorconfig -> .github/.editorconfig
 ├── .markdownlint.json -> .github/.markdownlint.json
 ├── .vscode/extensions.json -> ../.github/.vscode/extensions.json
-├── winmetta.code-workspace -> .github/winmetta.code-workspace
 ├── AGENTS.md -> .github/AGENTS.md
 ├── CLAUDE.md -> AGENTS.md
 └── <repo-name>/                      # other winmetta repos, cloned as needed
@@ -62,13 +61,15 @@ The script is safe to run more than once.
 
 #### Open the workspace in VS Code
 
-Always open the workspace through the link in the **workspace root**, not the copy inside `.github/`:
+Open the workspace file where it lives, in `.github/`, and do not link it into the workspace root:
 
 ```bash
-code "$WORKSPACE/winmetta.code-workspace"
+code "$WORKSPACE/.github/winmetta.code-workspace"
 ```
 
-Or, in VS Code, use **File → Open Workspace from File…** and choose `winmetta.code-workspace` in the workspace root (e.g. `~/winmetta`). The workspace's folder and its tasks are relative to the workspace root. Opening `.github/winmetta.code-workspace` directly makes `.github` the root instead, so you won't see the other repos and the tasks fail. Opening the workspace gives you the shared editor settings, a prompt for the recommended extensions, and **Tasks: Run Task** entries for the setup scripts.
+Or, in VS Code, use **File → Open Workspace from File…** and choose `winmetta.code-workspace` inside `.github/`. VS Code resolves symlinks, so a link at the workspace root would still make `.` the `.github` folder; that is why the file lists its folders relative to `.github`: `.` (this repo, shown as `.github`), `../winmetta-platform` and `../bootstrap-dev-env`. Add a `{ "name": "<repo>", "path": "../<repo>" }` entry for each other repo you want as its own root. The tasks run from the workspace root (`options.cwd` is `${workspaceFolder:.github}/..`), so their commands such as `./bootstrap-dev-env/bootstrap.sh` are relative to it. Opening the workspace gives you the shared editor settings, a prompt for the recommended extensions, and **Tasks: Run Task** entries for the setup scripts.
+
+An older version of `link-workspace.sh` linked the workspace file into the workspace root. If you still have that link, remove it (it is only a link): `unlink "$WORKSPACE/winmetta.code-workspace"`.
 
 ### 3. Clone the repos you need
 
