@@ -1,16 +1,21 @@
 {
-  // Shared Win Metta VS Code workspace. Linked into the workspace root by
-  // link-workspace.sh. Open it with: code winmetta.code-workspace
+  // Shared Win Metta VS Code workspace. Open it from where it lives:
+  //   code .github/winmetta.code-workspace   (run from the workspace root)
+  // Do not symlink it into the workspace root: VS Code resolves symlinks, so "." is
+  // always the .github folder and the other repos are its siblings (../<repo>).
   // Recommended extensions live in .vscode/extensions.json.
   "folders": [
     {
+      "name": ".github",
       "path": ".",
     },
     {
-      "path": "winmetta-platform",
+      "name": "winmetta-platform",
+      "path": "../winmetta-platform",
     },
     {
-      "path": "bootstrap-dev-env",
+      "name": "bootstrap-dev-env",
+      "path": "../bootstrap-dev-env",
     },
   ],
   "settings": {
@@ -82,6 +87,7 @@
       {
         "label": "Bootstrap dev environment (shared tools)",
         "type": "shell",
+        "options": { "cwd": "${workspaceFolder:.github}/.." },
         "command": "./bootstrap-dev-env/bootstrap.sh",
         "problemMatcher": [],
         "presentation": { "reveal": "always", "panel": "dedicated" },
@@ -89,6 +95,7 @@
       {
         "label": "Set up winmetta-platform",
         "type": "shell",
+        "options": { "cwd": "${workspaceFolder:.github}/.." },
         "command": "./winmetta-platform/scripts/setup-local-dev.sh",
         "problemMatcher": [],
         "presentation": { "reveal": "always", "panel": "dedicated" },
@@ -96,6 +103,7 @@
       {
         "label": "Lint shell scripts (shellcheck + shfmt)",
         "type": "shell",
+        "options": { "cwd": "${workspaceFolder:.github}/.." },
         "command": "shellcheck -s bash -x -P SCRIPTDIR .github/*.sh .github/scripts/*.sh bootstrap-dev-env/bootstrap.sh bootstrap-dev-env/lib/*.sh bootstrap-dev-env/platforms/*.sh winmetta-platform/scripts/*.sh && shfmt -d .github/*.sh .github/scripts/*.sh bootstrap-dev-env/bootstrap.sh bootstrap-dev-env/lib bootstrap-dev-env/platforms winmetta-platform/scripts/*.sh",
         "problemMatcher": [],
         "presentation": { "reveal": "always", "panel": "shared" },
@@ -103,6 +111,7 @@
       {
         "label": "Check Markdown (markdownlint + prettier)",
         "type": "shell",
+        "options": { "cwd": "${workspaceFolder:.github}/.." },
         "command": "markdownlint-cli2 '.github/*.md' 'bootstrap-dev-env/*.md' 'bootstrap-dev-env/platforms/*.md' && prettier --check '.github/*.md' 'bootstrap-dev-env/*.md' 'bootstrap-dev-env/platforms/*.md'",
         "problemMatcher": [],
         "presentation": { "reveal": "always", "panel": "shared" },
@@ -110,6 +119,7 @@
       {
         "label": "Fix and format Markdown (markdownlint --fix + prettier)",
         "type": "shell",
+        "options": { "cwd": "${workspaceFolder:.github}/.." },
         "command": "markdownlint-cli2 --fix '.github/*.md' 'bootstrap-dev-env/*.md' 'bootstrap-dev-env/platforms/*.md'; prettier --write '.github/*.md' 'bootstrap-dev-env/*.md' 'bootstrap-dev-env/platforms/*.md'",
         "problemMatcher": [],
         "presentation": { "reveal": "always", "panel": "shared" },
