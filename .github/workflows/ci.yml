@@ -42,6 +42,8 @@ jobs:
             shfmt = "3.14.1"
       - name: Run the pre-commit checks on every file
         run: lefthook run pre-commit --all-files
+      - name: Test the setup script
+        run: bash scripts/bootstrap-winmetta-dev.test.sh
       # The hook only scans what is staged, so scan the whole history here.
       - name: Scan the git history for secrets
         run: gitleaks git --redact --no-banner

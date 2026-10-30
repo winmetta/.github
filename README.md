@@ -3,7 +3,8 @@
 Org-wide defaults, shared AI-agent context, and the **starting point for workspace setup** for every repo in the [Win Metta](https://winmetta.org/about/) GitHub organization.
 
 - [AGENTS.md](AGENTS.md): context for AI coding agents about Win Metta and the local workspace (`CLAUDE.md` is a symlink to it)
-- [link-workspace.sh](link-workspace.sh): sets up the local workspace (symlinks into the workspace root)
+- [bootstrap-winmetta-dev.sh](bootstrap-winmetta-dev.sh): sets up everything for developing `winmetta-platform` and the related repos: workspace symlinks, repo clones, shared dev tools, git hooks, the platform's dependencies and its agent skills
+- [scripts/bootstrap-winmetta-dev.test.sh](scripts/bootstrap-winmetta-dev.test.sh): tests for that script, run in a throwaway workspace with stub tools
 - Machine setup (tools, git, shell, vim, terminal) is not here: it lives in [winmetta/bootstrap-dev-env](https://github.com/winmetta/bootstrap-dev-env)
 - [.editorconfig](.editorconfig): shared indentation, line-ending and column settings for Markdown and shell scripts
 - [.markdownlint.json](.markdownlint.json): shared markdownlint rules (long lines allowed)
@@ -32,19 +33,32 @@ Do these steps once, in order, then follow the README / `CONTRIBUTING.md` of the
 - [Claude desktop app](https://claude.com/download)
 - [ChatGPT desktop app](https://openai.com/chatgpt/download/)
 
-### 2. Set up the workspace
+### 2. Run the setup script
 
 All Win Metta repos are cloned side by side under one **workspace root**. The recommended path is `~/winmetta`, but any path works (e.g. `~/Projects/winmetta`). The workspace root itself is not a git repo. It is just the folder that holds this `.github` clone and the other repo clones.
+
+Clone this repo into the workspace root and run the setup script. It does everything below in one go:
 
 ```bash
 WORKSPACE=~/winmetta   # or ~/Projects/winmetta, etc.
 mkdir -p "$WORKSPACE" && cd "$WORKSPACE"
 gh auth login          # if not already logged in
 gh repo clone winmetta/.github
-./.github/link-workspace.sh
+./.github/bootstrap-winmetta-dev.sh
 ```
 
-`link-workspace.sh` creates these symlinks in the workspace root, so editors and AI agents opened anywhere in the workspace pick up the shared context:
+It is safe to re-run: finished steps are skipped, and a failing step does not stop the others (every failure is listed at the end, with exit code 1). Steps, in order:
+
+1. Checks that `git` and `gh` are installed and `gh` is logged in.
+2. Links the shared workspace files into the workspace root (layout below), so editors and AI agents opened anywhere in the workspace pick up the shared context.
+3. Clones `agent-skills`, `bootstrap-dev-env` and `winmetta-platform`, plus the private `winmetta-platform-private` if you have access (it is skipped with a warning if you do not). Existing clones are left alone.
+4. Runs [`bootstrap-dev-env/bootstrap.sh`](https://github.com/winmetta/bootstrap-dev-env#readme): mise, the CLI tools, shared git settings, the shell prompt and helpers, editors and the terminal profile (macOS; Linux and Windows are planned). Run it with the `--containers` option by hand if you need Docker.
+5. Installs this repo's git hooks (`lefthook install`).
+6. Runs `winmetta-platform/scripts/setup-local-dev.sh`: Node, locked dependencies and the Playwright browser.
+7. Checks that the `winmetta-platform` agent skills are installed: `add-dhamma-post` (part of that repo) and `bash-scripting` (from [`winmetta/agent-skills`](https://github.com/winmetta/agent-skills)). A missing catalog skill is installed with `npx skills`.
+8. Installs the shared skills `bash-scripting`, `pr-description` and `skill-maintainer` for your user (`npx skills ... -g`), so Claude Code and Codex have them in every repo under the workspace and anywhere else. Skills you already have are skipped.
+
+Options: `--skip-tools` (step 4, when the machine is already set up), `--skip-platform` (step 6), `--dry-run` (print what would change and change nothing). If the Command Line Tools installer asks you to finish, do that and rerun the script. Open a new terminal afterwards so mise is active.
 
 ```text
 <workspace>/
@@ -54,26 +68,26 @@ gh repo clone winmetta/.github
 ├── .vscode/extensions.json -> ../.github/.vscode/extensions.json
 ├── AGENTS.md -> .github/AGENTS.md
 ├── CLAUDE.md -> AGENTS.md
+├── agent-skills/                     # the shared skill catalog
+├── bootstrap-dev-env/                # machine setup
+├── winmetta-platform/
+├── winmetta-platform-private/        # if you have access
 └── <repo-name>/                      # other winmetta repos, cloned as needed
 ```
 
-The script is safe to run more than once.
-
 #### Open the workspace in VS Code
 
-Open the workspace file where it lives, in `.github/`, and do not link it into the workspace root:
+Open the workspace file from one location only, `.github/`. The setup script never links it into the workspace root, and it removes the link that an earlier version created at `<workspace>/winmetta.code-workspace`:
 
 ```bash
 code "$WORKSPACE/.github/winmetta.code-workspace"
 ```
 
-Or, in VS Code, use **File → Open Workspace from File…** and choose `winmetta.code-workspace` inside `.github/`. VS Code resolves symlinks, so a link at the workspace root would still make `.` the `.github` folder; that is why the file lists its folders relative to `.github`: `.` (this repo, shown as `.github`), `../winmetta-platform` and `../bootstrap-dev-env`. Add a `{ "name": "<repo>", "path": "../<repo>" }` entry for each other repo you want as its own root. The tasks run from the workspace root (`options.cwd` is `${workspaceFolder:.github}/..`), so their commands such as `./bootstrap-dev-env/bootstrap.sh` are relative to it. Opening the workspace gives you the shared editor settings, a prompt for the recommended extensions, and **Tasks: Run Task** entries for the setup scripts.
+Or, in VS Code, use **File → Open Workspace from File…** and choose `winmetta.code-workspace` inside `.github/`. VS Code resolves symlinks, so a copy or link at the workspace root would still make `.` the `.github` folder; that is why the file lists its folders relative to `.github`, sorted by name: `.` (this repo, shown as `.github`), `../agent-skills`, `../bootstrap-dev-env`, `../winmetta-platform` and `../winmetta-platform-private`. Keep that order when you add a `{ "name": "<repo>", "path": "../<repo>" }` entry for another repo. The tasks run from the workspace root (`options.cwd` is `${workspaceFolder:.github}/..`), so their commands such as `./bootstrap-dev-env/bootstrap.sh` are relative to it. Opening the workspace gives you the shared editor settings, a prompt for the recommended extensions, and **Tasks: Run Task** entries for the setup scripts.
 
-An older version of `link-workspace.sh` linked the workspace file into the workspace root. If you still have that link, remove it (it is only a link): `unlink "$WORKSPACE/winmetta.code-workspace"`.
+### 3. Clone other repos
 
-### 3. Clone the repos you need
-
-Always clone from the workspace root, so each repo lands in `<workspace>/<repo-name>/`:
+The script clones the repos above. For any other org repo, clone from the workspace root, so it lands in `<workspace>/<repo-name>/`:
 
 ```bash
 cd "$WORKSPACE"
@@ -81,32 +95,12 @@ gh repo list winmetta --limit 100          # see what exists
 gh repo clone winmetta/<repo-name>         # clone one repo
 ```
 
-To clone every active org repo you can access that is not already cloned:
+### 4. Agent skills
+
+Skills useful in more than one repo live in [`winmetta/agent-skills`](https://github.com/winmetta/agent-skills). The setup script installs `bash-scripting`, `pr-description` and `skill-maintainer` from it for your user: the files go in `~/.agents/skills/<name>/` (read by Codex) and `~/.claude/skills/<name>` links to them (read by Claude Code). `winmetta-platform` also ships `bash-scripting` next to its own `add-dhamma-post`, so contributors who skip the script still get it from the repo. Start a new agent session after installing. Update the user-level skills with `npx skills update -g`. To add another catalog skill by hand:
 
 ```bash
-cd "$WORKSPACE"
-gh repo list winmetta --limit 100 --no-archived --json name -q '.[].name' |
-  while read -r repo; do
-    [ -d "$repo" ] || gh repo clone "winmetta/$repo"
-  done
-```
-
-This includes sample and experimental repos such as `demo-repository`. Skip any you don't need.
-
-### 4. Install the shared dev tools
-
-Run once per machine. The setup lives in its own repo, [winmetta/bootstrap-dev-env](https://github.com/winmetta/bootstrap-dev-env), which is not specific to Win Metta. Clone it into the workspace root like any other repo and run it:
-
-```bash
-cd "$WORKSPACE"
-gh repo clone winmetta/bootstrap-dev-env
-./bootstrap-dev-env/bootstrap.sh
-```
-
-It is safe to re-run. On **macOS** it installs mise and the CLI tools, shared git settings, the starship prompt, shell helpers, vim, iTerm2, Zed and the Nerd Font. Linux and Windows are planned. See its [README](https://github.com/winmetta/bootstrap-dev-env#readme) for what it installs, every path it writes, and the `explain-*` commands that describe the tools afterwards. Then install this repo's git hooks once:
-
-```bash
-cd "$WORKSPACE/.github" && lefthook install
+npx skills@latest add winmetta/agent-skills --skill <name> -a claude-code -a codex -g
 ```
 
 ### 5. Set up the repo

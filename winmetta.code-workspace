@@ -1,8 +1,9 @@
 {
-  // Shared Win Metta VS Code workspace. Open it from where it lives:
+  // Shared Win Metta VS Code workspace. Open it from this one location, in .github/:
   //   code .github/winmetta.code-workspace   (run from the workspace root)
-  // Do not symlink it into the workspace root: VS Code resolves symlinks, so "." is
+  // Never link or copy it into the workspace root: VS Code resolves symlinks, so "." is
   // always the .github folder and the other repos are its siblings (../<repo>).
+  // Keep the folders sorted by name.
   // Recommended extensions live in .vscode/extensions.json.
   "folders": [
     {
@@ -10,12 +11,20 @@
       "path": ".",
     },
     {
-      "name": "winmetta-platform",
-      "path": "../winmetta-platform",
+      "name": "agent-skills",
+      "path": "../agent-skills",
     },
     {
       "name": "bootstrap-dev-env",
       "path": "../bootstrap-dev-env",
+    },
+    {
+      "name": "winmetta-platform",
+      "path": "../winmetta-platform",
+    },
+    {
+      "name": "winmetta-platform-private",
+      "path": "../winmetta-platform-private",
     },
   ],
   "settings": {
