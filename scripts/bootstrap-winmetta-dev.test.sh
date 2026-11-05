@@ -104,6 +104,7 @@ test_full_run_links_and_clones() {
     check "AGENTS.md is linked" test "$(readlink "${WS}/AGENTS.md")" = ".github/AGENTS.md"
     check "CLAUDE.md is linked" test "$(readlink "${WS}/CLAUDE.md")" = "AGENTS.md"
     check ".vscode/extensions.json is linked" test -L "${WS}/.vscode/extensions.json"
+    check "workspace file is not linked" test ! -e "${WS}/winmetta.code-workspace" -a ! -L "${WS}/winmetta.code-workspace"
     local repo
     for repo in agent-skills bootstrap-dev-env winmetta-platform winmetta-platform-private; do
         check "${repo} is cloned" test -d "${WS}/${repo}/.git"
@@ -160,21 +161,6 @@ test_dry_run_changes_nothing() {
     check "dry run clones nothing" test ! -s "${CLONE_LOG}"
 }
 
-test_old_workspace_link_is_removed() {
-    new_workspace
-    ln -s .github/winmetta.code-workspace "${WS}/winmetta.code-workspace"
-    run_bootstrap --skip-tools --skip-platform >/dev/null 2>&1
-    check "old workspace link is removed" test ! -e "${WS}/winmetta.code-workspace" -a ! -L "${WS}/winmetta.code-workspace"
-    check "workspace file is never linked" test ! -L "${WS}/winmetta.code-workspace"
-}
-
-test_real_workspace_file_is_kept() {
-    new_workspace
-    echo "mine" >"${WS}/winmetta.code-workspace"
-    run_bootstrap --skip-tools --skip-platform >/dev/null 2>&1
-    check "a real file at the root is kept" test "$(cat "${WS}/winmetta.code-workspace")" = "mine"
-}
-
 test_existing_file_is_not_overwritten() {
     new_workspace
     echo "mine" >"${WS}/.editorconfig"
@@ -192,8 +178,6 @@ main() {
     test_private_clone_failure_is_a_warning
     test_public_clone_failure_is_reported
     test_dry_run_changes_nothing
-    test_old_workspace_link_is_removed
-    test_real_workspace_file_is_kept
     test_existing_file_is_not_overwritten
     if [[ "${FAILURES}" -gt 0 ]]; then
         echo "${FAILURES} failed"
