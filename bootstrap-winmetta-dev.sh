@@ -5,10 +5,8 @@
 # usually ~/winmetta). Steps, in order:
 #   1. check git and gh (logged in) are available
 #   2. link the shared workspace files into the workspace root: AGENTS.md, CLAUDE.md,
-#      .editorconfig, .markdownlint.json and .vscode/extensions.json. The VS Code workspace file is
-#      never linked into the root (VS Code resolves symlinks, so a link would make "." the
-#      .github folder anyway): open it only from .github/winmetta.code-workspace. An old link
-#      from an earlier version of this setup is removed.
+#      .editorconfig, .markdownlint.json and .vscode/extensions.json. The VS Code workspace file
+#      is not linked: open it from .github/winmetta.code-workspace.
 #   3. clone the repos below next to this one (existing clones are left alone)
 #   4. run bootstrap-dev-env/bootstrap.sh: mise, CLI tools, git, shell, editors (macOS)
 #   5. install this repo's git hooks (lefthook)
@@ -123,13 +121,6 @@ link() {
 }
 
 link_workspace_files() {
-    # The workspace file is opened only from .github/. Older versions of this setup linked it into
-    # the root; remove that link (only when it is exactly the old link, never a real file).
-    local stale="${WORKSPACE}/winmetta.code-workspace"
-    if [[ -L "${stale}" && "$(readlink "${stale}")" == "${REPO_NAME}/winmetta.code-workspace" ]]; then
-        run rm "${stale}"
-        log_info "removed  ${stale} (old link; open ${REPO_DIR}/winmetta.code-workspace instead)"
-    fi
     link "../${REPO_NAME}/.vscode/extensions.json" .vscode/extensions.json
     link "${REPO_NAME}/.editorconfig" .editorconfig
     link "${REPO_NAME}/.markdownlint.json" .markdownlint.json

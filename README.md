@@ -77,13 +77,13 @@ Options: `--skip-tools` (step 4, when the machine is already set up), `--skip-pl
 
 #### Open the workspace in VS Code
 
-Open the workspace file from one location only, `.github/`. The setup script never links it into the workspace root, and it removes the link that an earlier version created at `<workspace>/winmetta.code-workspace`:
+Open the workspace file from `.github/`, where it lives. The setup script does not link it into the workspace root:
 
 ```bash
 code "$WORKSPACE/.github/winmetta.code-workspace"
 ```
 
-Or, in VS Code, use **File → Open Workspace from File…** and choose `winmetta.code-workspace` inside `.github/`. VS Code resolves symlinks, so a copy or link at the workspace root would still make `.` the `.github` folder; that is why the file lists its folders relative to `.github`, sorted by name: `.` (this repo, shown as `.github`), `../agent-skills`, `../bootstrap-dev-env`, `../winmetta-platform` and `../winmetta-platform-private`. Keep that order when you add a `{ "name": "<repo>", "path": "../<repo>" }` entry for another repo. The tasks run from the workspace root (`options.cwd` is `${workspaceFolder:.github}/..`), so their commands such as `./bootstrap-dev-env/bootstrap.sh` are relative to it. Opening the workspace gives you the shared editor settings, a prompt for the recommended extensions, and **Tasks: Run Task** entries for the setup scripts.
+Or, in VS Code, use **File → Open Workspace from File…** and choose `winmetta.code-workspace` inside `.github/`. Don't link or copy it into the workspace root: VS Code resolves symlinks, so `.` would still be the `.github` folder, and a copy would drift. The file lists its folders relative to `.github`, sorted by name: `.` (this repo, shown as `.github`), `../agent-skills`, `../bootstrap-dev-env`, `../winmetta-platform` and `../winmetta-platform-private`. Keep that order when you add a `{ "name": "<repo>", "path": "../<repo>" }` entry for another repo. The tasks run from the workspace root (`options.cwd` is `${workspaceFolder:.github}/..`), so their commands such as `./bootstrap-dev-env/bootstrap.sh` are relative to it. Opening the workspace gives you the shared editor settings, a prompt for the recommended extensions, and **Tasks: Run Task** entries for the setup scripts.
 
 ### 3. Clone other repos
 
