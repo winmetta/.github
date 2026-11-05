@@ -114,7 +114,7 @@ test_user_skills_are_installed_once() {
     new_workspace
     run_bootstrap --skip-tools --skip-platform >/dev/null 2>&1
     local name
-    for name in bash-scripting pr-description skill-maintainer local-code-review local-pr-review; do
+    for name in bash-scripting pr-description skill-maintainer local-change-review local-pr-review; do
         check "user skill ${name} is installed" test -f "${WS}/home/.agents/skills/${name}/SKILL.md"
         check "user skill ${name} is linked for Claude" test -e "${WS}/home/.claude/skills/${name}/SKILL.md"
     done

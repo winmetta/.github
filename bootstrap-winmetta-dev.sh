@@ -15,7 +15,7 @@
 #   6. run winmetta-platform/scripts/setup-local-dev.sh: Node, dependencies, Playwright
 #   7. make sure the winmetta-platform agent skills are installed (add-dhamma-post, bash-scripting)
 #   8. install the shared agent skills for your user (bash-scripting, pr-description,
-#      skill-maintainer, local-code-review, local-pr-review), so Claude Code and Codex have
+#      skill-maintainer, local-change-review, local-pr-review), so Claude Code and Codex have
 #      them in every repo
 #      under the workspace
 #
@@ -43,7 +43,7 @@ readonly PLATFORM_OWN_SKILLS="add-dhamma-post"
 readonly PLATFORM_CATALOG_SKILLS="bash-scripting"
 # Catalog skills installed for the user (~/.agents/skills, linked from ~/.claude/skills), so they
 # are available in every repo, not just winmetta-platform.
-readonly USER_CATALOG_SKILLS="bash-scripting pr-description skill-maintainer local-code-review local-pr-review"
+readonly USER_CATALOG_SKILLS="bash-scripting pr-description skill-maintainer local-change-review local-pr-review"
 
 SKIP_TOOLS=0
 SKIP_PLATFORM=0
