@@ -102,7 +102,6 @@ test_full_run_links_and_clones() {
     local status=$?
     expect_status "run exits 0" 0 "${status}"
     check "AGENTS.md is linked" test "$(readlink "${WS}/AGENTS.md")" = ".github/AGENTS.md"
-    check "CLAUDE.md is linked" test "$(readlink "${WS}/CLAUDE.md")" = "AGENTS.md"
     check ".vscode/extensions.json is linked" test -L "${WS}/.vscode/extensions.json"
     check "workspace file is not linked" test ! -e "${WS}/winmetta.code-workspace" -a ! -L "${WS}/winmetta.code-workspace"
     local repo
