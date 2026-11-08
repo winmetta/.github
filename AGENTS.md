@@ -18,11 +18,11 @@ Win Metta is a California 501(c)(3) nonprofit that preserves and shares **Therav
 
 **Current programs:** Dhamma classes and retreats (many run over Zoom), the free **Dhamma Library** (audio, video, books, study materials), Burmese language classes (e.g. _Let's Learn Burmese_), and Pāḷi / Tipiṭaka study classes. Teachers are Sayadaws and Venerable monks based in California, Arizona, Myanmar, and elsewhere.
 
-**Web presence:** `winmetta.org` (main WordPress site, not managed from this workspace), `retreat.winmetta.org` (retreat meditation bell), `winmetta.org/dhamma-library`. Contact: <contact@winmetta.org>.
+**Web presence:** `winmetta.org` (main WordPress site, not managed from this workspace), `retreat.winmetta.org` (retreat meditation bell; being rebuilt inside `winmetta-platform`), `winmetta.org/dhamma-library`. Contact: <contact@winmetta.org>.
 
 ## 2. Discovering Repositories
 
-This file intentionally does **not** list repositories. Repos get created, archived, cloned, and deleted over time, so any list here would go stale. Discover the current state instead:
+This file intentionally does **not** list repositories, apart from the archived ones noted below, which agents must not work on. Repos get created, archived, cloned, and deleted over time, so any list here would go stale. Discover the current state instead:
 
 - **Local clones:** each subdirectory of the workspace root that contains a `.git/` is a clone of an org repo. Which repos are cloned locally varies by machine and over time. Don't treat it as the full set.
 - **All org repos (source of truth):** use the `gh` CLI, e.g.
@@ -32,6 +32,7 @@ This file intentionally does **not** list repositories. Repos get created, archi
   gh repo view winmetta/<repo-name>
   ```
 
+- **Archived repos:** `winmetta-retreat-web` and `winmetta-retreat-desktop-app` (the retreat bell website and its desktop app) are archived and read-only: their features are being rebuilt in `winmetta-platform`. Read them for reference only. Don't open PRs against them, add CI or Dependabot to them, or unarchive them; make the change in `winmetta-platform` instead. `gh repo list` includes archived repos unless you add `--no-archived`.
 - **Getting a repo that isn't cloned yet:** run `gh repo clone winmetta/<repo-name>` from the workspace root
 - **What a repo does:** read its `AGENTS.md` / `README.md` (locally or via `gh repo view`), not this file.
 
