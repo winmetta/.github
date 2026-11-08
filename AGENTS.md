@@ -22,7 +22,7 @@ Win Metta is a California 501(c)(3) nonprofit that preserves and shares **Therav
 
 ## 2. Discovering Repositories
 
-This file intentionally does **not** list repositories. Repos get created, archived, cloned, and deleted over time, so any list here would go stale. Discover the current state instead:
+This file intentionally does **not** list repositories, apart from the archived ones noted below, which agents must not work on. Repos get created, archived, cloned, and deleted over time, so any list here would go stale. Discover the current state instead:
 
 - **Local clones:** each subdirectory of the workspace root that contains a `.git/` is a clone of an org repo. Which repos are cloned locally varies by machine and over time. Don't treat it as the full set.
 - **All org repos (source of truth):** use the `gh` CLI, e.g.
