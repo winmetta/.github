@@ -41,6 +41,7 @@ This file intentionally does **not** list repositories. Repos get created, archi
 - **Naming:** use the `winmetta-` prefix for anything user-facing. Internal or ops tooling can use a plain descriptive name.
 - **Agent docs:** every repo should have its own `AGENTS.md`, with `CLAUDE.md` as a symlink to it (`ln -s AGENTS.md CLAUDE.md`). Cover what the repo is, commands, architecture, and conventions specific to that repo.
 - **Visibility:** assume **public** unless the repo handles credentials, member data, or internal operations. Those repos are private. Never commit secrets. Use env vars or local config files listed in `.gitignore`.
+- **Internal information has a private home:** people and roles, access, alert and billing mailing lists, org decisions and the operations runbook (AWS sign-in and every step that changes live systems) go in the private repo [winmetta/winmetta-platform-private](https://github.com/winmetta/winmetta-platform-private) (access on request), never in a public repo; `winmetta-platform/AGENTS.md` §2 has the table of what goes where.
 
 ## 4. Guiding Principles Across All Win Metta Projects
 
