@@ -8,7 +8,7 @@ The workspace-root `AGENTS.md` is a symlink to `.github/AGENTS.md` in the [winme
 
 ## 1. About Win Metta
 
-Win Metta is a California 501(c)(3) nonprofit that preserves and shares **Theravāda Buddhist teachings**, in the Burmese **Pa-Auk forest tradition**. It serves both Myanmar-based and diaspora learners, in Burmese and English. Details: <https://winmetta.org/about/>.
+Win Metta is a California 501(c)(3) nonprofit that preserves and shares **Theravāda Buddhist teachings**. It serves both Myanmar-based and diaspora learners, in Burmese and English. Details: <https://winmetta.org/about/>.
 
 **Mission (the reason every repo here exists):**
 
