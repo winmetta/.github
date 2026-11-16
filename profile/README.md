@@ -38,4 +38,4 @@ The earlier retreat website and desktop app are archived. Their features are bei
 
 Volunteer help with development, accessibility, Burmese and English language review, and documentation is welcome. Start with the [platform's contribution guide](https://github.com/winmetta/winmetta-platform/blob/main/CONTRIBUTING.md) and the repository's own instructions.
 
-For questions about volunteering or Win Metta's programs, contact [contact@winmetta.org](mailto:contact@winmetta.org).
+For questions about volunteering or Win Metta's programs, contact [github@winmetta.org](mailto:github@winmetta.org).
