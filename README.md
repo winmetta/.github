@@ -3,6 +3,7 @@
 Org-wide defaults, shared AI-agent context, and the **starting point for workspace setup** for every repo in the [Win Metta](https://winmetta.org/about/) GitHub organization.
 
 - [AGENTS.md](AGENTS.md): context for AI coding agents about Win Metta and the local workspace
+- [profile/README.md](profile/README.md): the public introduction displayed on the Win Metta GitHub organization's Overview tab
 - [bootstrap-winmetta-dev.sh](bootstrap-winmetta-dev.sh): sets up everything for developing `winmetta-platform` and the related repos: workspace symlinks, repo clones, shared dev tools, git hooks, the platform's dependencies and its agent skills
 - [scripts/bootstrap-winmetta-dev.test.sh](scripts/bootstrap-winmetta-dev.test.sh): tests for that script, run in a throwaway workspace with stub tools
 - Machine setup (tools, git, shell, vim, terminal) is not here: it lives in [winmetta/bootstrap-dev-env](https://github.com/winmetta/bootstrap-dev-env)
