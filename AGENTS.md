@@ -43,6 +43,7 @@ This file intentionally does **not** list repositories, apart from the archived 
 - **Agent docs:** every repo should have its own `AGENTS.md`. Cover what the repo is, commands, architecture, and conventions specific to that repo.
 - **Visibility:** assume **public** unless the repo handles credentials, member data, or internal operations. Those repos are private. Never commit secrets. Use env vars or local config files listed in `.gitignore`.
 - **Internal information has a private home:** people and roles, access, alert and billing mailing lists, org decisions and the operations runbook (AWS sign-in and every step that changes live systems) go in the private repo [winmetta/winmetta-platform-private](https://github.com/winmetta/winmetta-platform-private) (access on request), never in a public repo; `winmetta-platform/AGENTS.md` §2 has the table of what goes where.
+- **Prefer service-specific Google Groups for organization email.** Reuse a suitable Google Workspace mailing list for vendor correspondence, alerts, and billing. Create one for a new service or distinct audience when needed. Prefer these addresses over individual inboxes for routine mail. Keep named organization accounts for individual sign-in and audit trails, and restrict any group that receives recovery mail to authorized custodians. Keep group addresses, owners, membership, and setup details in the private operations repo. Get approval before changing live email or group settings.
 
 ## 4. Guiding Principles Across All Win Metta Projects
 
