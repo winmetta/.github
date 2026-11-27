@@ -32,7 +32,7 @@ Do these steps once, in order, then follow the README / `CONTRIBUTING.md` of the
 
 - [Visual Studio Code](https://code.visualstudio.com/download)
 - AI coding tools used in Win Metta development:
-  - **Google Gemini:** Antigravity IDE and Antigravity CLI (`agy`)
+  - **Google Gemini:** [Antigravity IDE and CLI](https://antigravity.google/download#antigravity-cli) (`agy`)
   - **Anthropic Claude:** [Claude desktop app](https://claude.com/download) (Claude Code) and Claude Code CLI (`claude`)
   - **OpenAI GPT:** [ChatGPT desktop app](https://openai.com/chatgpt/download/) and Codex CLI (`codex`)
 
