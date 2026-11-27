@@ -31,8 +31,10 @@ Do these steps once, in order, then follow the README / `CONTRIBUTING.md` of the
 #### Recommended
 
 - [Visual Studio Code](https://code.visualstudio.com/download)
-- [Claude desktop app](https://claude.com/download)
-- [ChatGPT desktop app](https://openai.com/chatgpt/download/)
+- AI coding tools used in Win Metta development:
+  - **Google Gemini:** Antigravity IDE and Antigravity CLI (`agy`)
+  - **Anthropic Claude:** [Claude desktop app](https://claude.com/download) (Claude Code) and Claude Code CLI (`claude`)
+  - **OpenAI GPT:** [ChatGPT desktop app](https://openai.com/chatgpt/download/) and Codex CLI (`codex`)
 
 ### 2. Run the setup script
 
@@ -57,7 +59,7 @@ It is safe to re-run: finished steps are skipped, and a failing step does not st
 5. Installs this repo's git hooks (`lefthook install`).
 6. Runs `winmetta-platform/scripts/setup-local-dev.sh`: Node, locked dependencies and the Playwright browser.
 7. Checks that the `winmetta-platform` agent skills are installed: `add-dhamma-post` (part of that repo) and `bash-scripting` (from [`winmetta/agent-skills`](https://github.com/winmetta/agent-skills)). A missing catalog skill is installed with `npx skills`.
-8. Installs the shared skills `bash-scripting`, `pr-description`, `skill-maintainer`, `local-change-review`, `local-pr-review`, `colima-macos-arm64` and `burmese-pali-orthography` for your user (`npx skills ... -g`), so Claude Code and Codex have them in every repo under the workspace and anywhere else. Skills you already have are skipped. The Colima skill guides container setup and troubleshooting; installing it does not install container tools, start a VM or select a Docker context.
+8. Installs the shared skills `bash-scripting`, `pr-description`, `skill-maintainer`, `local-change-review`, `local-pr-review`, `colima-macos-arm64` and `burmese-pali-orthography` for your user (`npx skills ... -g`), so Antigravity, Claude Code, and Codex have them in every repo under the workspace and anywhere else. Skills you already have are skipped. The Colima skill guides container setup and troubleshooting; installing it does not install container tools, start a VM or select a Docker context.
 
 Options: `--skip-tools` (step 4, when the machine is already set up), `--skip-platform` (step 6), `--dry-run` (print what would change and change nothing). If the Command Line Tools installer asks you to finish, do that and rerun the script. Open a new terminal afterwards so mise is active.
 
@@ -97,7 +99,7 @@ gh repo clone winmetta/<repo-name>         # clone one repo
 
 ### 4. Agent skills
 
-Skills useful in more than one repo live in [`winmetta/agent-skills`](https://github.com/winmetta/agent-skills). The setup script installs `bash-scripting`, `pr-description`, `skill-maintainer`, `local-change-review`, `local-pr-review`, `colima-macos-arm64` and `burmese-pali-orthography` from it for your user: the files go in `~/.agents/skills/<name>/` (read by Codex) and `~/.claude/skills/<name>` links to them (read by Claude Code). `winmetta-platform` also ships `bash-scripting` next to its own `add-dhamma-post`, so contributors who skip the script still get it from the repo. Start a new agent session after installing. Update the user-level skills with `npx skills update -g`. To add another catalog skill by hand:
+Skills useful in more than one repo live in [`winmetta/agent-skills`](https://github.com/winmetta/agent-skills). The setup script installs `bash-scripting`, `pr-description`, `skill-maintainer`, `local-change-review`, `local-pr-review`, `colima-macos-arm64` and `burmese-pali-orthography` from it for your user: the files go in `~/.agents/skills/<name>/` (read by Antigravity and Codex) and `~/.claude/skills/<name>` links to them (read by Claude Code). `winmetta-platform` also ships `bash-scripting` next to its own `add-dhamma-post`, so contributors who skip the script still get it from the repo. Start a new agent session after installing. Update the user-level skills with `npx skills update -g`. To add another catalog skill by hand:
 
 ```bash
 npx skills@latest add winmetta/agent-skills --skill <name> -a claude-code -a codex -g
