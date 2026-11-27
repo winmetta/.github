@@ -26,6 +26,14 @@
       "name": "winmetta-platform-private",
       "path": "../winmetta-platform-private",
     },
+    {
+      "name": "winmetta-platform.wiki",
+      "path": "../winmetta-platform.wiki",
+    },
+    {
+      "name": "myanmar-burmese-legacy-fonts",
+      "path": "../myanmar-burmese-legacy-fonts",
+    },
   ],
   "settings": {
     // Whitespace and line endings come from the shared .editorconfig.
