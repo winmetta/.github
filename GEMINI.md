@@ -16,3 +16,5 @@ This file supplements `AGENTS.md` with mandatory skill triggers for Gemini / Ant
 ## Command Execution & Approval Policy
 
 - In **Auto** permission preset mode, do not ask the user for approval on operations within the project/workspace folder (prefer sandboxed execution and standard workspace tools), unless an explicit rule elsewhere requires confirmation (such as destructive operations, cloud/production writes, or repository settings changes).
+- If a sandboxed command fails with a sandbox configuration or path permission error (forcing `BypassSandbox: true` and triggering an Antigravity IDE approval prompt), report the exact sandbox error and the affected path or setting to the user so they can fix it.
+- Keep `gh` and `local-pr-review` commands (`gh pr ...`, `node ~/.gemini/config/skills/local-pr-review/scripts/...`) as standalone commands rather than chaining them with `&&`, `cd ... && ...`, or `cat <<'EOF'` (use `write_file` for temp files, `--repo` for `gh`, and `git -C` for `git`) so `command(...)` allow rules match cleanly.
