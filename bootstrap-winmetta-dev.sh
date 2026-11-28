@@ -4,7 +4,7 @@
 # Run it from a clone of this repo, which sits inside the workspace root (the parent directory,
 # usually ~/winmetta). Steps, in order:
 #   1. check git and gh (logged in) are available
-#   2. link the shared workspace files into the workspace root: AGENTS.md,
+#   2. link the shared workspace files into the workspace root: AGENTS.md, GEMINI.md,
 #      .editorconfig, .markdownlint.json and .vscode/extensions.json. The VS Code workspace file
 #      is not linked: open it from .github/winmetta.code-workspace.
 #   3. clone the repos below next to this one (existing clones are left alone)
@@ -126,6 +126,7 @@ link_workspace_files() {
     link "${REPO_NAME}/.editorconfig" .editorconfig
     link "${REPO_NAME}/.markdownlint.json" .markdownlint.json
     link "${REPO_NAME}/AGENTS.md" AGENTS.md
+    link "${REPO_NAME}/GEMINI.md" GEMINI.md
 }
 
 # clone_repo <name> <required|optional>: an optional repo that cannot be cloned is only a warning.
